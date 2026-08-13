@@ -5,5 +5,5 @@ Program the brains of carnivores, herbivores, and plants in a live 2D ecosystem 
 Create a new project for this target:
 
 ```
-gh:mindcraft-lang/trg-ecosim@0.1.3
+gh:mindcraft-lang/trg-ecosim@0.1.4
 ```
