@@ -6,7 +6,7 @@ function getDefaultExportFromCjs(x) {
   return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, "default") ? x["default"] : x;
 }
 var app = {};
-var mindcraft = {};
+var wendoo = {};
 var brain$1 = {};
 var brain = {};
 var eventEmitter$1 = {};
@@ -36,6 +36,14 @@ function requireList() {
       return this.xs.length === 0;
     }
     get(i) {
+      if (i < 0 || i >= this.xs.length) {
+        throw new Error(`List index out of range: ${i} (size ${this.xs.length})`);
+      }
+      return this.xs[i];
+    }
+    at(i) {
+      if (i < 0 || i >= this.xs.length)
+        return void 0;
       return this.xs[i];
     }
     set(i, v) {
@@ -146,8 +154,13 @@ function requireList() {
     }
     get(i) {
       if (i < 0 || i >= this._count) {
-        throw new Error(`Sublist index out of range: ${i}`);
+        throw new Error(`Sublist index out of range: ${i} (size ${this._count})`);
       }
+      return this._list.get(this._start + i);
+    }
+    at(i) {
+      if (i < 0 || i >= this._count)
+        return void 0;
       return this._list.get(this._start + i);
     }
     forEach(fn) {
@@ -590,6 +603,7 @@ function requireAbiIds() {
     CoreFuncId2[CoreFuncId2["ConvEnumToString"] = 104] = "ConvEnumToString";
     CoreFuncId2[CoreFuncId2["ConvEnumToNumber"] = 105] = "ConvEnumToNumber";
     CoreFuncId2[CoreFuncId2["SensorOtherwise"] = 106] = "SensorOtherwise";
+    CoreFuncId2[CoreFuncId2["SensorRuleTrigger"] = 107] = "SensorRuleTrigger";
   })(CoreFuncId || (abiIds.CoreFuncId = CoreFuncId = {}));
   abiIds.CoreHostActions = {
     SwitchPage: { key: "switch-page", actionId: 0, fnId: CoreFuncId.ActuatorSwitchPage },
@@ -600,7 +614,8 @@ function requireAbiIds() {
     Timeout: { key: "sensor.timeout", actionId: 5, fnId: CoreFuncId.SensorTimeout },
     CurrentPage: { key: "current-page", actionId: 6, fnId: CoreFuncId.SensorCurrentPage },
     PreviousPage: { key: "previous-page", actionId: 7, fnId: CoreFuncId.SensorPreviousPage },
-    Otherwise: { key: "otherwise", actionId: 8, fnId: CoreFuncId.SensorOtherwise }
+    Otherwise: { key: "otherwise", actionId: 8, fnId: CoreFuncId.SensorOtherwise },
+    RuleTrigger: { key: "rule-trigger", actionId: 9, fnId: CoreFuncId.SensorRuleTrigger }
   };
   return abiIds;
 }
@@ -1598,129 +1613,7 @@ function requireUniqueset() {
   return uniqueset;
 }
 var functionDefs = {};
-var hasRequiredFunctionDefs;
-function requireFunctionDefs() {
-  if (hasRequiredFunctionDefs) return functionDefs;
-  hasRequiredFunctionDefs = 1;
-  Object.defineProperty(functionDefs, "__esModule", { value: true });
-  functionDefs.mkCallDef = mkCallDef;
-  functionDefs.getSlotId = getSlotId;
-  functionDefs.callSpecToArgSlots = callSpecToArgSlots;
-  functionDefs.mkActionDescriptor = mkActionDescriptor;
-  const error_1 = /* @__PURE__ */ requireError();
-  const list_1 = /* @__PURE__ */ requireList();
-  const types_1 = /* @__PURE__ */ requireTypes$1();
-  function mkCallDef(callSpec2) {
-    const argSlots = callSpecToArgSlots(callSpec2);
-    return {
-      callSpec: callSpec2,
-      argSlots
-    };
-  }
-  function getSlotId(callDef2, tileIdOrSpec) {
-    const tileId = types_1.TypeUtils.isString(tileIdOrSpec) ? tileIdOrSpec : tileIdOrSpec.tileId;
-    const idx = callDef2.argSlots.findIndex((s) => s.argSpec.tileId === tileId);
-    if (idx === -1) {
-      throw new error_1.Error(`No arg slot found for tileId: ${tileId}`);
-    }
-    return idx;
-  }
-  let nextChoiceGroupId = 0;
-  function callSpecToArgSlots(callSpec2) {
-    const argList = list_1.List.empty();
-    callSpecToArgSlotsImpl(callSpec2, argList, void 0, void 0);
-    return argList.asReadonly();
-  }
-  function callSpecToArgSlotsImpl(callSpec2, argList, choiceGroup, repeated) {
-    switch (callSpec2.type) {
-      case "arg":
-        argList.push({
-          slotId: argList.size(),
-          argSpec: callSpec2,
-          choiceGroup,
-          repeated
-        });
-        break;
-      case "seq":
-        for (const item of callSpec2.items) {
-          callSpecToArgSlotsImpl(item, argList, choiceGroup, repeated);
-        }
-        break;
-      case "choice": {
-        const groupId = nextChoiceGroupId++;
-        for (const option of callSpec2.options) {
-          callSpecToArgSlotsImpl(option, argList, groupId, repeated);
-        }
-        break;
-      }
-      case "optional":
-        callSpecToArgSlotsImpl(callSpec2.item, argList, choiceGroup, repeated);
-        break;
-      case "repeat":
-        callSpecToArgSlotsImpl(callSpec2.item, argList, choiceGroup, true);
-        break;
-      case "bag":
-        for (const item of callSpec2.items) {
-          callSpecToArgSlotsImpl(item, argList, choiceGroup, repeated);
-        }
-        break;
-      case "conditional":
-        callSpecToArgSlotsImpl(callSpec2.then, argList, choiceGroup, repeated);
-        if (callSpec2.else) {
-          callSpecToArgSlotsImpl(callSpec2.else, argList, choiceGroup, repeated);
-        }
-        break;
-    }
-  }
-  function mkActionDescriptor(kind, fnEntry, outputType) {
-    return {
-      key: fnEntry.name,
-      kind,
-      callDef: fnEntry.callDef,
-      isAsync: fnEntry.isAsync,
-      outputType
-    };
-  }
-  return functionDefs;
-}
-var jsonContainerCodec = {};
-var hasRequiredJsonContainerCodec;
-function requireJsonContainerCodec() {
-  if (hasRequiredJsonContainerCodec) return jsonContainerCodec;
-  hasRequiredJsonContainerCodec = 1;
-  Object.defineProperty(jsonContainerCodec, "__esModule", { value: true });
-  jsonContainerCodec.listFromJson = listFromJson;
-  jsonContainerCodec.listToJson = listToJson;
-  jsonContainerCodec.dictToJsonEntries = dictToJsonEntries;
-  jsonContainerCodec.dictFromJsonEntries = dictFromJsonEntries;
-  const dict_1 = /* @__PURE__ */ requireDict();
-  const list_1 = /* @__PURE__ */ requireList();
-  function listFromJson(items, convert) {
-    const source = list_1.List.from(items);
-    const result = list_1.List.empty();
-    for (let i = 0; i < source.size(); i++) {
-      result.push(convert(source.get(i)));
-    }
-    return result;
-  }
-  function listToJson(list2, convert) {
-    return list2.map(convert).toArray();
-  }
-  function dictToJsonEntries(dict2, convert) {
-    return dict2.entries().map((entry) => convert(entry[0], entry[1])).toArray();
-  }
-  function dictFromJsonEntries(entries, convert) {
-    const source = list_1.List.from(entries);
-    const result = new dict_1.Dict();
-    for (let i = 0; i < source.size(); i++) {
-      const [key, value2] = convert(source.get(i));
-      result.set(key, value2);
-    }
-    return result;
-  }
-  return jsonContainerCodec;
-}
-var valueCodec = {};
+var value = {};
 var typeDefs = {};
 var hasRequiredTypeDefs;
 function requireTypeDefs() {
@@ -1817,7 +1710,6 @@ function requireTypeDefs() {
   }
   return typeDefs;
 }
-var value = {};
 var hasRequiredValue;
 function requireValue() {
   if (hasRequiredValue) return value;
@@ -1980,7 +1872,7 @@ function requireValue() {
     function getClosedStructFieldByName(typeDef, source, fieldName) {
       var _a;
       const fieldIndex = typeDef.fieldIndexByName.get(fieldName);
-      return fieldIndex === void 0 ? void 0 : (_a = source.v) == null ? void 0 : _a.get(fieldIndex);
+      return fieldIndex === void 0 ? void 0 : (_a = source.v) == null ? void 0 : _a.at(fieldIndex);
     }
     function mkNativeStructValue(typeId, native) {
       return { t: type_defs_1.NativeType.Struct, typeId, v: list_1.List.empty(), native };
@@ -2145,6 +2037,187 @@ function requireValue() {
   })(value);
   return value;
 }
+var hasRequiredFunctionDefs;
+function requireFunctionDefs() {
+  if (hasRequiredFunctionDefs) return functionDefs;
+  hasRequiredFunctionDefs = 1;
+  Object.defineProperty(functionDefs, "__esModule", { value: true });
+  functionDefs.mkCallDef = mkCallDef;
+  functionDefs.getSlotId = getSlotId;
+  functionDefs.callSpecToArgSlots = callSpecToArgSlots;
+  functionDefs.mkActionDescriptor = mkActionDescriptor;
+  const error_1 = /* @__PURE__ */ requireError();
+  const list_1 = /* @__PURE__ */ requireList();
+  const types_1 = /* @__PURE__ */ requireTypes$1();
+  const value_1 = /* @__PURE__ */ requireValue();
+  function validateArgSpec(argSpec) {
+    const where = argSpec.name ?? argSpec.tileId;
+    if (argSpec.default !== void 0 && argSpec.derived !== void 0) {
+      throw new error_1.Error(`Arg ${where} declares both a default and derived; an empty slot means one or the other`);
+    }
+    if (argSpec.required === true && (argSpec.default !== void 0 || argSpec.derived !== void 0)) {
+      throw new error_1.Error(`Arg ${where} is required and declares what an empty slot means; a required slot is never empty`);
+    }
+    const range = argSpec.range;
+    if (range === void 0)
+      return;
+    if (range.min === void 0 && range.max === void 0) {
+      throw new error_1.Error(`Arg ${where} declares a range carrying neither bound`);
+    }
+    if (range.min !== void 0 && range.max !== void 0 && range.min > range.max) {
+      throw new error_1.Error(`Arg ${where} declares a range whose min ${range.min} is above its max ${range.max}`);
+    }
+    if (argSpec.default !== void 0 && !(0, value_1.isNumberValue)(argSpec.default)) {
+      throw new error_1.Error(`Arg ${where} declares a range on a non-numeric slot`);
+    }
+  }
+  function validateSpecNames(callSpec2) {
+    const seen = list_1.List.empty();
+    const visit = (spec) => {
+      if (spec.name !== void 0) {
+        if (seen.indexOf(spec.name) !== -1) {
+          throw new error_1.Error(`Call spec names ${spec.name} twice; a name identifies one spec to the grammar`);
+        }
+        seen.push(spec.name);
+      }
+      switch (spec.type) {
+        case "arg":
+          return;
+        case "seq":
+        case "bag":
+          for (const item of spec.items)
+            visit(item);
+          return;
+        case "choice":
+          for (const option of spec.options)
+            visit(option);
+          return;
+        case "optional":
+        case "repeat":
+          visit(spec.item);
+          return;
+        case "conditional":
+          visit(spec.then);
+          if (spec.else)
+            visit(spec.else);
+          return;
+      }
+    };
+    visit(callSpec2);
+  }
+  function mkCallDef(callSpec2) {
+    validateSpecNames(callSpec2);
+    const argSlots = callSpecToArgSlots(callSpec2);
+    return {
+      callSpec: callSpec2,
+      argSlots
+    };
+  }
+  function getSlotId(callDef2, tileIdOrSpec) {
+    const tileId = types_1.TypeUtils.isString(tileIdOrSpec) ? tileIdOrSpec : tileIdOrSpec.tileId;
+    const idx = callDef2.argSlots.findIndex((s) => s.argSpec.tileId === tileId);
+    if (idx === -1) {
+      throw new error_1.Error(`No arg slot found for tileId: ${tileId}`);
+    }
+    return idx;
+  }
+  let nextChoiceGroupId = 0;
+  function callSpecToArgSlots(callSpec2) {
+    const argList = list_1.List.empty();
+    callSpecToArgSlotsImpl(callSpec2, argList, void 0, void 0);
+    return argList.asReadonly();
+  }
+  function callSpecToArgSlotsImpl(callSpec2, argList, choiceGroup, repeated) {
+    switch (callSpec2.type) {
+      case "arg":
+        validateArgSpec(callSpec2);
+        argList.push({
+          slotId: argList.size(),
+          argSpec: callSpec2,
+          choiceGroup,
+          repeated
+        });
+        break;
+      case "seq":
+        for (const item of callSpec2.items) {
+          callSpecToArgSlotsImpl(item, argList, choiceGroup, repeated);
+        }
+        break;
+      case "choice": {
+        const groupId = nextChoiceGroupId++;
+        for (const option of callSpec2.options) {
+          callSpecToArgSlotsImpl(option, argList, groupId, repeated);
+        }
+        break;
+      }
+      case "optional":
+        callSpecToArgSlotsImpl(callSpec2.item, argList, choiceGroup, repeated);
+        break;
+      case "repeat":
+        callSpecToArgSlotsImpl(callSpec2.item, argList, choiceGroup, true);
+        break;
+      case "bag":
+        for (const item of callSpec2.items) {
+          callSpecToArgSlotsImpl(item, argList, choiceGroup, repeated);
+        }
+        break;
+      case "conditional":
+        callSpecToArgSlotsImpl(callSpec2.then, argList, choiceGroup, repeated);
+        if (callSpec2.else) {
+          callSpecToArgSlotsImpl(callSpec2.else, argList, choiceGroup, repeated);
+        }
+        break;
+    }
+  }
+  function mkActionDescriptor(kind, fnEntry, outputType) {
+    return {
+      key: fnEntry.name,
+      kind,
+      callDef: fnEntry.callDef,
+      isAsync: fnEntry.isAsync,
+      outputType
+    };
+  }
+  return functionDefs;
+}
+var jsonContainerCodec = {};
+var hasRequiredJsonContainerCodec;
+function requireJsonContainerCodec() {
+  if (hasRequiredJsonContainerCodec) return jsonContainerCodec;
+  hasRequiredJsonContainerCodec = 1;
+  Object.defineProperty(jsonContainerCodec, "__esModule", { value: true });
+  jsonContainerCodec.listFromJson = listFromJson;
+  jsonContainerCodec.listToJson = listToJson;
+  jsonContainerCodec.dictToJsonEntries = dictToJsonEntries;
+  jsonContainerCodec.dictFromJsonEntries = dictFromJsonEntries;
+  const dict_1 = /* @__PURE__ */ requireDict();
+  const list_1 = /* @__PURE__ */ requireList();
+  function listFromJson(items, convert) {
+    const source = list_1.List.from(items);
+    const result = list_1.List.empty();
+    for (let i = 0; i < source.size(); i++) {
+      result.push(convert(source.get(i)));
+    }
+    return result;
+  }
+  function listToJson(list2, convert) {
+    return list2.map(convert).toArray();
+  }
+  function dictToJsonEntries(dict2, convert) {
+    return dict2.entries().map((entry) => convert(entry[0], entry[1])).toArray();
+  }
+  function dictFromJsonEntries(entries, convert) {
+    const source = list_1.List.from(entries);
+    const result = new dict_1.Dict();
+    for (let i = 0; i < source.size(); i++) {
+      const [key, value2] = convert(source.get(i));
+      result.set(key, value2);
+    }
+    return result;
+  }
+  return jsonContainerCodec;
+}
+var valueCodec = {};
 var hasRequiredValueCodec;
 function requireValueCodec() {
   if (hasRequiredValueCodec) return valueCodec;
@@ -2691,6 +2764,8 @@ function requireBytecode() {
       Op2[Op2["CALL_INDIRECT_ARGS"] = 161] = "CALL_INDIRECT_ARGS";
       Op2[Op2["MAKE_CLOSURE"] = 170] = "MAKE_CLOSURE";
       Op2[Op2["LOAD_CAPTURE"] = 171] = "LOAD_CAPTURE";
+      Op2[Op2["WHEN_END_CHAIN"] = 172] = "WHEN_END_CHAIN";
+      Op2[Op2["WHEN_END_PRESENT_CHAIN"] = 173] = "WHEN_END_PRESENT_CHAIN";
     })(Op || (exports$1.Op = Op = {}));
     exports$1.BYTECODE_VERSION = 1;
     const UVAR = { encoding: "uvar" };
@@ -2730,6 +2805,8 @@ function requireBytecode() {
       [Op.DO_START]: [],
       [Op.DO_END]: [],
       [Op.WHEN_END_PRESENT]: [SVAR],
+      [Op.WHEN_END_CHAIN]: [SVAR],
+      [Op.WHEN_END_PRESENT_CHAIN]: [SVAR],
       [Op.LIST_NEW]: [UVAR, UVAR_OPT],
       [Op.LIST_PUSH]: [],
       [Op.LIST_GET]: [],
@@ -2901,7 +2978,7 @@ function requireProgram() {
     exports$1.anyVariableInit = anyVariableInit;
     const error_1 = /* @__PURE__ */ requireError();
     function resolveProgramTypeId(types2, idx) {
-      const entry = types2 == null ? void 0 : types2.get(idx);
+      const entry = types2 == null ? void 0 : types2.at(idx);
       if (!entry) {
         throw new error_1.Error(`Type-table index ${idx} out of range (table size ${types2 ? types2.size() : 0})`);
       }
@@ -2972,11 +3049,11 @@ function requireProgramImage() {
   if (hasRequiredProgramImage) return programImage;
   hasRequiredProgramImage = 1;
   Object.defineProperty(programImage, "__esModule", { value: true });
-  programImage.MindcraftProgramImageEncoding = programImage.MINDCRAFT_BINARY_PROGRAM_IMAGE_MAGIC = programImage.MINDCRAFT_PROGRAM_IMAGE_VERSION = programImage.MINDCRAFT_PROGRAM_IMAGE_FORMAT = void 0;
-  programImage.MINDCRAFT_PROGRAM_IMAGE_FORMAT = "mindcraft.program";
-  programImage.MINDCRAFT_PROGRAM_IMAGE_VERSION = 1;
-  programImage.MINDCRAFT_BINARY_PROGRAM_IMAGE_MAGIC = [137, 77, 66, 80];
-  programImage.MindcraftProgramImageEncoding = {
+  programImage.WendooProgramImageEncoding = programImage.WENDOO_BINARY_PROGRAM_IMAGE_MAGIC = programImage.WENDOO_PROGRAM_IMAGE_VERSION = programImage.WENDOO_PROGRAM_IMAGE_FORMAT = void 0;
+  programImage.WENDOO_PROGRAM_IMAGE_FORMAT = "wendoo.program";
+  programImage.WENDOO_PROGRAM_IMAGE_VERSION = 1;
+  programImage.WENDOO_BINARY_PROGRAM_IMAGE_MAGIC = [137, 77, 66, 80];
+  programImage.WendooProgramImageEncoding = {
     JSON: "json",
     BINARY: "binary"
   };
@@ -3008,38 +3085,38 @@ function requireBrainProgramBinaryCodec() {
     const type_defs_1 = /* @__PURE__ */ requireTypeDefs();
     exports$1.BrainProgramBinaryCodecErrorCode = {
       /** The leading bytes are not the binary `.mcprogram` magic. */
-      INVALID_MAGIC: "MINDCRAFT_BINARY_CODEC_INVALID_MAGIC",
+      INVALID_MAGIC: "WENDOO_BINARY_CODEC_INVALID_MAGIC",
       /** The envelope format version exceeds the reader's maximum. */
-      UNSUPPORTED_FORMAT_VERSION: "MINDCRAFT_BINARY_CODEC_UNSUPPORTED_FORMAT_VERSION",
+      UNSUPPORTED_FORMAT_VERSION: "WENDOO_BINARY_CODEC_UNSUPPORTED_FORMAT_VERSION",
       /** An f64 numeric entry was found while decoding for an f32 target. */
-      F64_ON_F32_TARGET: "MINDCRAFT_BINARY_CODEC_F64_ON_F32_TARGET",
+      F64_ON_F32_TARGET: "WENDOO_BINARY_CODEC_F64_ON_F32_TARGET",
       /** A CNUM discriminant byte is not one of `0`/`1`/`2`. */
-      INVALID_NUMBER_DISCRIMINANT: "MINDCRAFT_BINARY_CODEC_INVALID_NUMBER_DISCRIMINANT",
+      INVALID_NUMBER_DISCRIMINANT: "WENDOO_BINARY_CODEC_INVALID_NUMBER_DISCRIMINANT",
       /** A value tag byte is not a serializable {@link NativeType}. */
-      INVALID_VALUE_TAG: "MINDCRAFT_BINARY_CODEC_INVALID_VALUE_TAG",
+      INVALID_VALUE_TAG: "WENDOO_BINARY_CODEC_INVALID_VALUE_TAG",
       /** A runtime-only or native-backed value was passed to the encoder. */
-      UNENCODABLE_VALUE: "MINDCRAFT_BINARY_CODEC_UNENCODABLE_VALUE",
+      UNENCODABLE_VALUE: "WENDOO_BINARY_CODEC_UNENCODABLE_VALUE",
       /** An opcode byte has no operand-schema entry. */
-      UNKNOWN_OPCODE: "MINDCRAFT_BINARY_CODEC_UNKNOWN_OPCODE",
+      UNKNOWN_OPCODE: "WENDOO_BINARY_CODEC_UNKNOWN_OPCODE",
       /** An instruction's operands do not match its opcode's operand schema. */
-      INSTRUCTION_SCHEMA_MISMATCH: "MINDCRAFT_BINARY_CODEC_INSTRUCTION_SCHEMA_MISMATCH",
+      INSTRUCTION_SCHEMA_MISMATCH: "WENDOO_BINARY_CODEC_INSTRUCTION_SCHEMA_MISMATCH",
       /** A profile id outside the unsigned 32-bit range was supplied to the encoder. */
-      INVALID_PROFILE_ID: "MINDCRAFT_BINARY_CODEC_INVALID_PROFILE_ID",
+      INVALID_PROFILE_ID: "WENDOO_BINARY_CODEC_INVALID_PROFILE_ID",
       /** A TYPS entry tag byte is not a known type-entry tag. */
-      INVALID_TYPE_ENTRY_TAG: "MINDCRAFT_BINARY_CODEC_INVALID_TYPE_ENTRY_TAG",
+      INVALID_TYPE_ENTRY_TAG: "WENDOO_BINARY_CODEC_INVALID_TYPE_ENTRY_TAG",
       /** A TYPS entry references a child at or beyond its own index. */
-      TYPE_FORWARD_REFERENCE: "MINDCRAFT_BINARY_CODEC_TYPE_FORWARD_REFERENCE",
+      TYPE_FORWARD_REFERENCE: "WENDOO_BINARY_CODEC_TYPE_FORWARD_REFERENCE",
       /** A type-table index is outside the decoded table. */
-      TYPE_INDEX_OUT_OF_RANGE: "MINDCRAFT_BINARY_CODEC_TYPE_INDEX_OUT_OF_RANGE",
+      TYPE_INDEX_OUT_OF_RANGE: "WENDOO_BINARY_CODEC_TYPE_INDEX_OUT_OF_RANGE",
       /** An enum constant's symbol ordinal is outside its type's symbol list. */
-      ENUM_ORDINAL_OUT_OF_RANGE: "MINDCRAFT_BINARY_CODEC_ENUM_ORDINAL_OUT_OF_RANGE",
+      ENUM_ORDINAL_OUT_OF_RANGE: "WENDOO_BINARY_CODEC_ENUM_ORDINAL_OUT_OF_RANGE",
       /** A TYPS atom entry's atomId is not registered in the decoding runtime. */
-      UNKNOWN_TYPE_ATOM: "MINDCRAFT_BINARY_CODEC_UNKNOWN_TYPE_ATOM",
+      UNKNOWN_TYPE_ATOM: "WENDOO_BINARY_CODEC_UNKNOWN_TYPE_ATOM",
       /** A TYPS enum entry's value-kind byte is not `0` (number) or `1` (string). */
-      INVALID_ENUM_VALUE_KIND: "MINDCRAFT_BINARY_CODEC_INVALID_ENUM_VALUE_KIND"
+      INVALID_ENUM_VALUE_KIND: "WENDOO_BINARY_CODEC_INVALID_ENUM_VALUE_KIND"
     };
     exports$1.BINARY_PROGRAM_FORMAT_VERSION = 4;
-    const MAGIC = list_1.List.from(program_image_1.MINDCRAFT_BINARY_PROGRAM_IMAGE_MAGIC);
+    const MAGIC = list_1.List.from(program_image_1.WENDOO_BINARY_PROGRAM_IMAGE_MAGIC);
     const I32_MIN = -2147483648;
     const I32_MAX = 2147483647;
     const NUMBER_DISCRIMINANT_SMALL_INT = 0;
@@ -4607,7 +4684,7 @@ function requireCallsiteStore() {
         if (!record) {
           return value_1.NIL_VALUE;
         }
-        return record.slots.get(slotIdx) ?? value_1.NIL_VALUE;
+        return record.slots.at(slotIdx) ?? value_1.NIL_VALUE;
       },
       setSlot(callSiteId, slotIdx, value2) {
         const record = ensureRecord(callSiteId);
@@ -4642,6 +4719,7 @@ function requireRuleServices() {
   Object.defineProperty(ruleServices, "__esModule", { value: true });
   ruleServices.RuleFiringState = void 0;
   ruleServices.createRuleFiringServices = createRuleFiringServices;
+  ruleServices.createRuleCompletionServices = createRuleCompletionServices;
   ruleServices.createProgramServices = createProgramServices;
   ruleServices.createRuleVariableServices = createRuleVariableServices;
   const dict_1 = /* @__PURE__ */ requireDict();
@@ -4661,6 +4739,31 @@ function requireRuleServices() {
         if (ruleFuncId === void 0)
           return;
         states.set(ruleFuncId, state);
+      }
+    };
+  }
+  function createRuleCompletionServices(slots, abandoned, hasLiveSubtree) {
+    return {
+      hasLiveSubtree(ruleFuncId) {
+        return hasLiveSubtree(ruleFuncId);
+      },
+      getWatcher(ruleFuncId) {
+        return slots.get(ruleFuncId);
+      },
+      setWatcher(ruleFuncId, handleId) {
+        slots.set(ruleFuncId, handleId);
+      },
+      clearWatcher(ruleFuncId) {
+        slots.delete(ruleFuncId);
+      },
+      isAbandoned(ruleFuncId) {
+        return abandoned.has(ruleFuncId);
+      },
+      markAbandoned(ruleFuncId) {
+        abandoned.add(ruleFuncId);
+      },
+      clearAbandoned(ruleFuncId) {
+        abandoned.delete(ruleFuncId);
       }
     };
   }
@@ -4987,7 +5090,7 @@ function requireVmTypes() {
   if (hasRequiredVmTypes) return vmTypes;
   hasRequiredVmTypes = 1;
   Object.defineProperty(vmTypes, "__esModule", { value: true });
-  vmTypes.HandleTable = vmTypes.HandleState = vmTypes.FiberState = vmTypes.VmStatus = vmTypes.UnderflowError = vmTypes.OverflowError = void 0;
+  vmTypes.HandleTable = vmTypes.HandleState = vmTypes.HANDLE_BACKPRESSURE_FAULT_ROUNDS = vmTypes.FiberState = vmTypes.VmStatus = vmTypes.UnderflowError = vmTypes.OverflowError = void 0;
   vmTypes.throwOverflow = throwOverflow;
   vmTypes.throwUnderflow = throwUnderflow;
   vmTypes.isOverflowError = isOverflowError;
@@ -5039,6 +5142,7 @@ function requireVmTypes() {
     FiberState2["FAULT"] = "FAULT";
     FiberState2["CANCELLED"] = "CANCELLED";
   })(FiberState || (vmTypes.FiberState = FiberState = {}));
+  vmTypes.HANDLE_BACKPRESSURE_FAULT_ROUNDS = 8192;
   var HandleState;
   (function(HandleState2) {
     HandleState2["PENDING"] = "PENDING";
@@ -5051,24 +5155,33 @@ function requireVmTypes() {
       __publicField(this, "maxHandles");
       __publicField(this, "nextId", 1);
       __publicField(this, "handles", new dict_1.Dict());
+      __publicField(this, "cappedCount", 0);
       __publicField(this, "eventEmitter", new event_emitter_1.EventEmitter());
       __publicField(this, "events", this.eventEmitter.consumer());
       this.maxHandles = maxHandles;
     }
     /**
-     * True when a {@link createPending} would succeed right now: the live-handle
-     * count is below {@link maxHandles}. Non-mutating; an async dispatch checks it
-     * to decide whether to allocate or to park and retry next round.
+     * True when a {@link createPending} of a capped handle would succeed right
+     * now: the live capped-handle count is below {@link maxHandles}. Uncapped
+     * handles are excluded from the count and always allocate. Non-mutating; an
+     * async dispatch checks it to decide whether to allocate or to park and retry
+     * next round.
      */
     hasCapacity() {
-      return this.handles.size() < this.maxHandles;
+      return this.cappedCount < this.maxHandles;
+    }
+    /** Count of live handles that count against {@link maxHandles}. */
+    cappedSize() {
+      return this.cappedCount;
     }
     /**
      * Allocate a pending handle. Pass `actionKey` when the handle backs an
-     * asynchronous host-action call, so its settle can name the action.
+     * asynchronous host-action call, so its settle can name the action. Pass
+     * `capped` false to keep the handle out of the {@link maxHandles} accounting;
+     * a capped allocation past the cap throws an overflow.
      */
-    createPending(actionKey) {
-      if (this.handles.size() >= this.maxHandles) {
+    createPending(actionKey, capped = true) {
+      if (capped && this.cappedCount >= this.maxHandles) {
         throwOverflow(`Handle limit exceeded: ${this.maxHandles}`);
       }
       const id3 = this.nextId++;
@@ -5077,8 +5190,12 @@ function requireVmTypes() {
         state: HandleState.PENDING,
         waiters: new uniqueset_1.UniqueSet(),
         createdAt: time_1.Time.nowMs(),
-        actionKey
+        actionKey,
+        capped
       });
+      if (capped) {
+        this.cappedCount++;
+      }
       return id3;
     }
     get(id3) {
@@ -5121,15 +5238,25 @@ function requireVmTypes() {
       this.eventEmitter.emit("completed", id3);
     }
     delete(id3) {
+      const h = this.handles.get(id3);
+      if (!h)
+        return;
+      if (h.capped) {
+        this.cappedCount--;
+      }
       this.handles.delete(id3);
     }
     clear() {
       this.handles.clear();
+      this.cappedCount = 0;
     }
     gc() {
       let removed = 0;
       for (const [id3, h] of this.handles.entries().toArray()) {
         if (h.state !== HandleState.PENDING && h.waiters.size() === 0) {
+          if (h.capped) {
+            this.cappedCount--;
+          }
           this.handles.delete(id3);
           removed++;
         }
@@ -5357,6 +5484,9 @@ function requireVm() {
         }
         const locals = this.allocLocals(fn, effectiveArgs);
         const ruleFuncId = this.resolveDirectRuleFuncId(executionContext, funcId);
+        if (ruleFuncId !== void 0) {
+          executionContext.services.brain.ruleCompletion.clearAbandoned(ruleFuncId);
+        }
         const now = time_1.Time.nowMs();
         const fiber = {
           id: fiberId,
@@ -5375,7 +5505,8 @@ function requireVm() {
           instrBudget: 0,
           createdAt: now,
           lastRunAt: now,
-          executionContext
+          executionContext,
+          ruleFuncId
         };
         return fiber;
       }
@@ -5494,6 +5625,10 @@ function requireVm() {
               return this.execWhenEnd(fiber, ins, frame);
             case bytecode_1.Op.WHEN_END_PRESENT:
               return this.execWhenEndPresent(fiber, ins, frame);
+            case bytecode_1.Op.WHEN_END_CHAIN:
+              return this.execWhenEndChain(fiber, ins, frame);
+            case bytecode_1.Op.WHEN_END_PRESENT_CHAIN:
+              return this.execWhenEndPresentChain(fiber, ins, frame);
             case bytecode_1.Op.DO_START:
               return this.execDoStart(fiber, ins, frame);
             case bytecode_1.Op.DO_END:
@@ -5963,8 +6098,9 @@ function requireVm() {
           (0, vm_types_1.throwUnderflow)(`HOST_CALL_ASYNC: argc ${argc} exceeds stack size ${stackSize}`);
         }
         if (!this.handles.hasCapacity()) {
-          return { status: vm_types_1.VmStatus.YIELDED };
+          return this.backpressureOnHandles(fiber, frame);
         }
+        this.clearHandleBackpressure(fiber);
         const args = list_1.List.empty();
         for (let i = 0; i < argc; i++) {
           args.push(fiber.vstack.get(stackSize - argc + i));
@@ -6036,8 +6172,9 @@ function requireVm() {
         const action = this.getExecutableAction(actionSlot, "ACTION_CALL_ASYNC");
         const actionKey = action.descriptor.key;
         if (!this.handles.hasCapacity()) {
-          return { status: vm_types_1.VmStatus.YIELDED };
+          return this.backpressureOnHandles(fiber, frame);
         }
+        this.clearHandleBackpressure(fiber);
         const args = this.snapshotStackArgs(fiber, argc, "ACTION_CALL_ASYNC");
         for (let i = 0; i < argc; i++) {
           fiber.vstack.pop();
@@ -6079,6 +6216,26 @@ function requireVm() {
        * the resolved action is not host-backed, or its sync/async-ness does not
        * match the opcode that issued the call.
        */
+      /**
+       * Records that the dispatch at `frame.pc` found no free async handle and
+       * returns the fiber's yield result. Faults `ErrorCode.StackOverflow` once the
+       * same dispatch has backpressured {@link HANDLE_BACKPRESSURE_FAULT_ROUNDS}
+       * consecutive rounds.
+       */
+      backpressureOnHandles(fiber, frame) {
+        const rounds = fiber.handleBackpressurePc === frame.pc ? (fiber.handleBackpressureRounds ?? 0) + 1 : 1;
+        fiber.handleBackpressurePc = frame.pc;
+        fiber.handleBackpressureRounds = rounds;
+        if (rounds >= vm_types_1.HANDLE_BACKPRESSURE_FAULT_ROUNDS) {
+          (0, vm_types_1.throwOverflow)(`Async handle starvation: no free handle for ${vm_types_1.HANDLE_BACKPRESSURE_FAULT_ROUNDS} rounds`);
+        }
+        return { status: vm_types_1.VmStatus.YIELDED };
+      }
+      /** Clears the backpressure run recorded by {@link backpressureOnHandles}. */
+      clearHandleBackpressure(fiber) {
+        fiber.handleBackpressurePc = void 0;
+        fiber.handleBackpressureRounds = 0;
+      }
       resolveHostAction(actionId, wantAsync, opName) {
         const action = this.runtime.actions.getById(actionId);
         if (!action) {
@@ -6137,9 +6294,11 @@ function requireVm() {
         if (!action.execAsync) {
           throw new error_1.Error(`HOST_ACTION_CALL_ASYNC: host action ${action.descriptor.key} is missing execAsync`);
         }
-        if (!this.handles.hasCapacity()) {
-          return { status: vm_types_1.VmStatus.YIELDED };
+        const capped = action.uncappedHandles !== true;
+        if (capped && !this.handles.hasCapacity()) {
+          return this.backpressureOnHandles(fiber, frame);
         }
+        this.clearHandleBackpressure(fiber);
         const args = list_1.List.empty();
         for (let i = 0; i < argc; i++) {
           args.push(fiber.vstack.get(stackSize - argc + i));
@@ -6147,7 +6306,7 @@ function requireVm() {
         for (let i = 0; i < argc; i++) {
           fiber.vstack.pop();
         }
-        const hid = this.handles.createPending(action.descriptor.key);
+        const hid = this.handles.createPending(action.descriptor.key, capped);
         this.push(fiber, V.handle(hid));
         this.bindExecutionContext(fiber, frame, callSiteId);
         (_b = (_a = this.events) == null ? void 0 : _a.onHostActionDispatch) == null ? void 0 : _b.call(_a, {
@@ -6251,37 +6410,55 @@ function requireVm() {
         frame.pc++;
         return void 0;
       }
-      execWhenEnd(fiber, ins, frame) {
+      /**
+       * Body shared by the four WHEN gates. Pops the WHEN result, captures it into
+       * the rule's reserved `__whenResult` variable (every rule captures, whatever
+       * the gate decides), computes the fired outcome, writes the firing record, and
+       * advances the PC by one on a fire or by the signed `a` offset on a skip,
+       * which lands past the DO section and any nested boundaries.
+       *
+       * @param presenceGated - Gate on the WHEN result being present (non-nil), so a
+       *   present falsy value fires. Otherwise the gate is on truthiness.
+       * @param chained - Write the chain-aware firing record of an `otherwise` rule.
+       *   Otherwise the record is the rule's own outcome.
+       */
+      execWhenGate(fiber, ins, frame, presenceGated, chained) {
         var _a, _b;
         const whenResult = this.pop(fiber);
+        const brain2 = fiber.executionContext.services.brain;
         const ruleFuncId = this.resolveFrameRuleFuncId(fiber.executionContext, frame);
-        fiber.executionContext.services.brain.ruleVars.setByName(ruleFuncId, "__whenResult", whenResult);
-        const fired = isTruthy(whenResult);
-        fiber.executionContext.services.brain.ruleFiring.set(ruleFuncId, fired ? rule_services_1.RuleFiringState.DID_FIRE : rule_services_1.RuleFiringState.DID_NOT_FIRE);
+        brain2.ruleVars.setByName(ruleFuncId, "__whenResult", whenResult);
+        const fired = presenceGated ? whenResult.t !== type_defs_1.NativeType.Nil : isTruthy(whenResult);
+        brain2.ruleFiring.set(ruleFuncId, chained ? this.chainedFiringState(brain2, ruleFuncId, fired) : fired ? rule_services_1.RuleFiringState.DID_FIRE : rule_services_1.RuleFiringState.DID_NOT_FIRE);
         (_b = (_a = this.events) == null ? void 0 : _a.onRuleWhenGate) == null ? void 0 : _b.call(_a, { ruleFuncId, result: whenResult, fired });
-        if (!fired) {
-          const offset = ins.a ?? 0;
-          frame.pc += offset;
-        } else {
-          frame.pc++;
-        }
+        frame.pc += fired ? 1 : ins.a ?? 0;
         return void 0;
       }
+      /**
+       * The firing record a chain gate writes: `DidFire` when the rule fired, and on
+       * a rule that did not fire the record of its subject -- the rule directly
+       * above it at its own nesting level. A rule with no subject records its own
+       * outcome.
+       */
+      chainedFiringState(brain2, ruleFuncId, fired) {
+        if (fired)
+          return rule_services_1.RuleFiringState.DID_FIRE;
+        const subjectFuncId = ruleFuncId === void 0 ? void 0 : brain2.program.getPrecedingSiblingRuleFuncId(ruleFuncId);
+        if (subjectFuncId === void 0)
+          return rule_services_1.RuleFiringState.DID_NOT_FIRE;
+        return brain2.ruleFiring.get(subjectFuncId);
+      }
+      execWhenEnd(fiber, ins, frame) {
+        return this.execWhenGate(fiber, ins, frame, false, false);
+      }
       execWhenEndPresent(fiber, ins, frame) {
-        var _a, _b;
-        const whenResult = this.pop(fiber);
-        const ruleFuncId = this.resolveFrameRuleFuncId(fiber.executionContext, frame);
-        fiber.executionContext.services.brain.ruleVars.setByName(ruleFuncId, "__whenResult", whenResult);
-        const fired = whenResult.t !== type_defs_1.NativeType.Nil;
-        fiber.executionContext.services.brain.ruleFiring.set(ruleFuncId, fired ? rule_services_1.RuleFiringState.DID_FIRE : rule_services_1.RuleFiringState.DID_NOT_FIRE);
-        (_b = (_a = this.events) == null ? void 0 : _a.onRuleWhenGate) == null ? void 0 : _b.call(_a, { ruleFuncId, result: whenResult, fired });
-        if (!fired) {
-          const offset = ins.a ?? 0;
-          frame.pc += offset;
-        } else {
-          frame.pc++;
-        }
-        return void 0;
+        return this.execWhenGate(fiber, ins, frame, true, false);
+      }
+      execWhenEndChain(fiber, ins, frame) {
+        return this.execWhenGate(fiber, ins, frame, false, true);
+      }
+      execWhenEndPresentChain(fiber, ins, frame) {
+        return this.execWhenGate(fiber, ins, frame, true, true);
       }
       execDoStart(fiber, ins, frame) {
         frame.pc++;
@@ -6322,7 +6499,7 @@ function requireVm() {
           throw new error_1.Error("LIST_GET: index must be number");
         }
         const idx = math_1.MathOps.floor(index.v);
-        const item = list2.v.get(idx);
+        const item = list2.v.at(idx);
         this.push(fiber, item ?? V.nil());
         frame.pc++;
         return void 0;
@@ -6575,7 +6752,7 @@ function requireVm() {
         if (typeDef == null ? void 0 : typeDef.fieldGetter) {
           return typeDef.fieldGetter(source, fieldId, fiber.executionContext) ?? V.nil();
         }
-        return ((_a = source.v) == null ? void 0 : _a.get(fieldId)) ?? V.nil();
+        return ((_a = source.v) == null ? void 0 : _a.at(fieldId)) ?? V.nil();
       }
       /**
        * Write a struct field by its numeric id (a pure store -- no value copy): dispatch to
@@ -6830,6 +7007,7 @@ function requireVm() {
         childContext.currentCallSiteId = callSiteId;
         childContext.currentRuleFuncId = ruleFuncId;
         childFrame.ruleFuncId = ruleFuncId;
+        childFiber.ruleFuncId = ruleFuncId;
         childFrame.actionBinding = {
           actionSlot,
           actionKey: action.descriptor.key,
@@ -6858,7 +7036,7 @@ function requireVm() {
         if (!listener) {
           return;
         }
-        const fn = this.prog.functions.get(frame.funcId);
+        const fn = this.prog.functions.at(frame.funcId);
         if (!fn) {
           return;
         }
@@ -7059,7 +7237,7 @@ function requireVm() {
           const actualStackSize = fiber.vstack.size();
           if (actualStackSize > frame.base) {
             const leaked = actualStackSize - frame.base;
-            const fn = this.prog.functions.get(frame.funcId);
+            const fn = this.prog.functions.at(frame.funcId);
             const fnName = (fn == null ? void 0 : fn.name) ?? `func[${frame.funcId}]`;
             logger_1.logger.warn(`[VM] Stack leak detected in ${fnName}: expected stack at ${frame.base}, found ${actualStackSize} (${leaked} extra values). Cleaning up.`);
           }
@@ -7103,6 +7281,49 @@ function requireVm() {
           throw new error_1.Error(`Invalid state transition: ${fiber.state} -> ${newState}`);
         }
         fiber.state = newState;
+        if (newState === vm_types_1.FiberState.DONE || newState === vm_types_1.FiberState.FAULT || newState === vm_types_1.FiberState.CANCELLED) {
+          this.settleRuleWatchers(fiber, newState);
+        }
+      }
+      /**
+       * The settle walk, run at every fiber terminal transition. Takes the
+       * finishing fiber's rule and walks it and its ancestors. A fiber that faulted
+       * or was cancelled marks every rule on that walk -- the whole set of clusters
+       * it belonged to -- as an abandoned firing. Then, for each rule whose cluster
+       * has emptied, resolves the pending trigger handle in that rule's watcher slot
+       * and clears the slot: `true` on a `DidFire` record with no abandonment mark,
+       * `false` otherwise.
+       *
+       * Call only once `fiber.state` is terminal.
+       */
+      settleRuleWatchers(fiber, cause) {
+        var _a;
+        const brain2 = fiber.executionContext.services.brain;
+        const abandoning = cause !== vm_types_1.FiberState.DONE;
+        let ruleFuncId = fiber.ruleFuncId;
+        while (ruleFuncId !== void 0) {
+          if (abandoning) {
+            brain2.ruleCompletion.markAbandoned(ruleFuncId);
+          }
+          const handleId = brain2.ruleCompletion.getWatcher(ruleFuncId);
+          if (handleId !== void 0 && !brain2.ruleCompletion.hasLiveSubtree(ruleFuncId)) {
+            const fired = !brain2.ruleCompletion.isAbandoned(ruleFuncId) && brain2.ruleFiring.get(ruleFuncId) === rule_services_1.RuleFiringState.DID_FIRE;
+            brain2.ruleCompletion.clearWatcher(ruleFuncId);
+            if (((_a = this.handles.get(handleId)) == null ? void 0 : _a.state) === vm_types_1.HandleState.PENDING) {
+              this.handles.resolve(handleId, fired ? value_1.TRUE_VALUE : value_1.FALSE_VALUE);
+            }
+          }
+          ruleFuncId = this.ruleParentFuncId(ruleFuncId);
+        }
+      }
+      /**
+       * The parent rule of `ruleFuncId` in the loaded program's rule-ancestor table.
+       * Returns `undefined` for a root rule and for a funcId the table does not
+       * declare.
+       */
+      ruleParentFuncId(ruleFuncId) {
+        const ancestors = this.prog.ruleAncestors;
+        return ancestors !== void 0 ? ancestors.get(ruleFuncId) : void 0;
       }
       faultFiber(fiber, err, scheduler) {
         var _a, _b;
@@ -7228,6 +7449,26 @@ function requireVm() {
         for (const [, fiber] of this.fibers.entries().toArray()) {
           if (fiber.rootRuleFuncId === rootRuleFuncId && (fiber.state === vm_types_1.FiberState.RUNNABLE || fiber.state === vm_types_1.FiberState.WAITING)) {
             return true;
+          }
+        }
+        return false;
+      }
+      /**
+       * True when any live (runnable or waiting) fiber belongs to `ruleFuncId`'s
+       * cluster: its own fiber, or a fiber whose rule reaches `ruleFuncId` by
+       * walking the program's rule-ancestor chain. Child-rule fibers held in the
+       * current tick's spawn drain are runnable and count.
+       */
+      hasLiveRuleSubtree(ruleFuncId) {
+        for (const [, fiber] of this.fibers.entries().toArray()) {
+          if (fiber.state !== vm_types_1.FiberState.RUNNABLE && fiber.state !== vm_types_1.FiberState.WAITING) {
+            continue;
+          }
+          let cur = fiber.ruleFuncId;
+          while (cur !== void 0) {
+            if (cur === ruleFuncId)
+              return true;
+            cur = this.vm.ruleParentFuncId(cur);
           }
         }
         return false;
@@ -7386,6 +7627,7 @@ function requireBrainRuntime() {
   const error_1 = /* @__PURE__ */ requireError();
   const event_emitter_1 = /* @__PURE__ */ requireEventEmitter$1();
   const list_1 = /* @__PURE__ */ requireList();
+  const uniqueset_1 = /* @__PURE__ */ requireUniqueset();
   const callsite_store_1 = /* @__PURE__ */ requireCallsiteStore();
   const program_1 = /* @__PURE__ */ requireProgram();
   const rule_services_1 = /* @__PURE__ */ requireRuleServices();
@@ -7507,6 +7749,8 @@ function requireBrainRuntime() {
       const callsiteStore2 = (0, callsite_store_1.createCallsiteStore)();
       const ruleVariableStores = new dict_1.Dict();
       const ruleFiringStates = new dict_1.Dict();
+      const ruleWatcherSlots = new dict_1.Dict();
+      const abandonedRuleFirings = new uniqueset_1.UniqueSet();
       this.callsiteStore = callsiteStore2;
       this.ruleVariableStores = ruleVariableStores;
       this.installVariableTable(program2, previousVariables);
@@ -7525,6 +7769,7 @@ function requireBrainRuntime() {
           brainVars: runtimeServices2.brainVars,
           ruleVars: (0, rule_services_1.createRuleVariableServices)(program2, ruleVariableStores),
           ruleFiring: (0, rule_services_1.createRuleFiringServices)(ruleFiringStates),
+          ruleCompletion: (0, rule_services_1.createRuleCompletionServices)(ruleWatcherSlots, abandonedRuleFirings, (ruleFuncId) => this.scheduler.hasLiveRuleSubtree(ruleFuncId)),
           pages: runtimeServices2.brainPages,
           callsite: callsiteStore2
         }
@@ -8012,7 +8257,7 @@ function requireBrainRuntime() {
      * calls `BrainPage.activate()` synchronously inside the emit.
      */
     activatePage(pageIndex) {
-      const meta = this.pageMetadata.get(pageIndex);
+      const meta = this.pageMetadata.at(pageIndex);
       if (!meta)
         return;
       this.activeRuleFiberIds = list_1.List.empty();
@@ -8090,7 +8335,7 @@ function requireBrainRuntime() {
     runDeactivationHooksForCurrentPage() {
       if (!this.isValidPageIndex(this.currentPageIndex))
         return;
-      const meta = this.pageMetadata.get(this.currentPageIndex);
+      const meta = this.pageMetadata.at(this.currentPageIndex);
       if (!meta)
         return;
       for (let i = 0; i < meta.actionCallSites.size(); i++) {
@@ -8373,17 +8618,14 @@ function requireCallSpec() {
   callSpec.repeated = repeated;
   callSpec.conditional = conditional;
   const tile_ids_1 = /* @__PURE__ */ requireTileIds();
+  function arg(tileId, opts) {
+    return { type: "arg", tileId, ...opts };
+  }
   function mod(tileId) {
-    return { type: "arg", tileId: (0, tile_ids_1.mkModifierTileId)(tileId) };
+    return arg((0, tile_ids_1.mkModifierTileId)(tileId));
   }
   function param(tileId, opts) {
-    return {
-      type: "arg",
-      tileId: (0, tile_ids_1.mkParameterTileId)(tileId),
-      name: opts == null ? void 0 : opts.name,
-      required: opts == null ? void 0 : opts.required,
-      anonymous: opts == null ? void 0 : opts.anonymous
-    };
+    return arg((0, tile_ids_1.mkParameterTileId)(tileId), opts);
   }
   function bag(...items) {
     return { type: "bag", items };
@@ -8768,7 +9010,7 @@ function requireConversions() {
       throw new error_1.Error(`registerEnumConversions: type ${typeId} is not an enum`);
     }
     const enumDef = enumType;
-    const firstSymbol = enumDef.symbols.get(0);
+    const firstSymbol = enumDef.symbols.at(0);
     if (!firstSymbol) {
       return;
     }
@@ -8958,7 +9200,7 @@ function requireElementAccessBuiltins() {
     return value2;
   }
   function readListIndex(list2, index) {
-    return list2.v.get(index) ?? value_1.NIL_VALUE;
+    return list2.v.at(index) ?? value_1.NIL_VALUE;
   }
   function readStringIndex(source, index) {
     return index < string_1.StringUtils.length(source) ? (0, value_1.mkStringValue)(string_1.StringUtils.charAt(source, index)) : value_1.NIL_VALUE;
@@ -8997,20 +9239,20 @@ function requireElementAccessBuiltins() {
     const { functions: functions2 } = services2.runtime;
     functions2.register(abi_ids_1.CoreFuncId.ListGet, "$$list_get_js", false, {
       exec: (_ctx, args) => {
-        const list2 = args.get(0);
+        const list2 = args.at(0);
         if (!list2 || list2.t !== type_defs_1.NativeType.List) {
           return value_1.NIL_VALUE;
         }
-        return listGetJs(list2, args.get(1));
+        return listGetJs(list2, args.at(1));
       }
     }, elementAccessCallDef);
     functions2.register(abi_ids_1.CoreFuncId.StringGet, "$$str_get_js", false, {
       exec: (_ctx, args) => {
-        const source = args.get(0);
+        const source = args.at(0);
         if (!source || source.t !== type_defs_1.NativeType.String) {
           return value_1.NIL_VALUE;
         }
-        return stringGetJs(source.v, args.get(1));
+        return stringGetJs(source.v, args.at(1));
       }
     }, elementAccessCallDef);
   }
@@ -10841,7 +11083,7 @@ function requireStringBuiltins() {
     return args.get(index).v;
   }
   function optNum(args, index) {
-    const val = args.get(index);
+    const val = args.at(index);
     if (val === void 0 || val.t === type_defs_1.NativeType.Nil)
       return void 0;
     return val.v;
@@ -11646,7 +11888,7 @@ function requireTypeSystem() {
           compatible = false;
           return;
         }
-        const sourceField = sourceStruct.fields.get(sourceFieldIndex);
+        const sourceField = sourceStruct.fields.at(sourceFieldIndex);
         if (!sourceField) {
           compatible = false;
           return;
@@ -12389,6 +12631,66 @@ function requireRandom() {
   };
   return random;
 }
+var ruleTrigger = {};
+var hasRequiredRuleTrigger;
+function requireRuleTrigger() {
+  if (hasRequiredRuleTrigger) return ruleTrigger;
+  hasRequiredRuleTrigger = 1;
+  Object.defineProperty(ruleTrigger, "__esModule", { value: true });
+  const abi_ids_1 = /* @__PURE__ */ requireAbiIds();
+  const core_types_1 = /* @__PURE__ */ requireCoreTypes();
+  const function_defs_1 = /* @__PURE__ */ requireFunctionDefs();
+  const rule_services_1 = /* @__PURE__ */ requireRuleServices();
+  const value_1 = /* @__PURE__ */ requireValue();
+  const callSpec2 = {
+    type: "bag",
+    items: []
+  };
+  const callDef2 = (0, function_defs_1.mkCallDef)(callSpec2);
+  const descriptor = {
+    key: abi_ids_1.CoreHostActions.RuleTrigger.key,
+    kind: "sensor",
+    callDef: callDef2,
+    isAsync: true,
+    outputType: core_types_1.CoreTypeIds.Boolean
+  };
+  function fnRuleTrigger(ctx, _args, handle) {
+    const brain2 = ctx.services.brain;
+    const ruleFuncId = ctx.currentRuleFuncId;
+    const subjectFuncId = ruleFuncId === void 0 ? void 0 : brain2.program.getPrecedingSiblingRuleFuncId(ruleFuncId);
+    if (subjectFuncId === void 0) {
+      handle.resolve(value_1.FALSE_VALUE);
+      return;
+    }
+    if (brain2.ruleCompletion.hasLiveSubtree(subjectFuncId)) {
+      brain2.ruleFiring.set(ruleFuncId, rule_services_1.RuleFiringState.DID_NOT_FIRE);
+      brain2.ruleCompletion.setWatcher(subjectFuncId, handle.id);
+      return;
+    }
+    const completed = brain2.ruleFiring.get(subjectFuncId) === rule_services_1.RuleFiringState.DID_FIRE && !brain2.ruleCompletion.isAbandoned(subjectFuncId);
+    handle.resolve(completed ? value_1.TRUE_VALUE : value_1.FALSE_VALUE);
+  }
+  const binding = {
+    binding: "host",
+    descriptor,
+    id: abi_ids_1.CoreHostActions.RuleTrigger.actionId,
+    execAsync: fnRuleTrigger,
+    // A rule holds at most one watcher, and a trigger handle lives only in a
+    // watcher slot, so the live count is bounded by the program's rule count.
+    uncappedHandles: true
+  };
+  ruleTrigger.default = {
+    key: abi_ids_1.CoreHostActions.RuleTrigger.key,
+    isAsync: true,
+    descriptor,
+    binding,
+    fn: {
+      exec: fnRuleTrigger
+    },
+    callDef: callDef2
+  };
+  return ruleTrigger;
+}
 var timeout = {};
 var hasRequiredTimeout;
 function requireTimeout() {
@@ -12403,10 +12705,12 @@ function requireTimeout() {
   const function_defs_1 = /* @__PURE__ */ requireFunctionDefs();
   const tile_ids_1 = /* @__PURE__ */ requireTileIds();
   const value_1 = /* @__PURE__ */ requireValue();
+  const DEFAULT_DELAY_SECONDS = 1;
   const AnonNumber = (0, call_spec_1.param)(tile_ids_1.CoreParameterId.AnonymousNumber, {
-    name: "anonNumber",
-    required: true,
-    anonymous: true
+    name: "seconds",
+    anonymous: true,
+    unit: "seconds",
+    default: (0, value_1.mkNumberValue)(DEFAULT_DELAY_SECONDS)
   });
   const callDef2 = (0, function_defs_1.mkCallDef)((0, call_spec_1.bag)((0, call_spec_1.optional)(AnonNumber)));
   const descriptor = {
@@ -12428,7 +12732,7 @@ function requireTimeout() {
     (0, context_1.setCallSiteState)(ctx, state);
   }
   function execTimeout(ctx, args) {
-    let delay = 1;
+    let delay = DEFAULT_DELAY_SECONDS;
     const anonNumberValue = args.get(kAnonymousNumberSlotId);
     if (anonNumberValue !== void 0 && !(0, value_1.isNilValue)(anonNumberValue)) {
       if (!(0, value_1.isNumberValue)(anonNumberValue) || math_1.MathOps.isNaN(anonNumberValue.v)) {
@@ -12494,6 +12798,7 @@ function requireSensors$1() {
   const otherwise_1 = __importDefault(/* @__PURE__ */ requireOtherwise());
   const previous_page_1 = __importDefault(/* @__PURE__ */ requirePreviousPage());
   const random_1 = __importDefault(/* @__PURE__ */ requireRandom());
+  const rule_trigger_1 = __importDefault(/* @__PURE__ */ requireRuleTrigger());
   const timeout_1 = __importDefault(/* @__PURE__ */ requireTimeout());
   function registerCoreSensors(services2) {
     services2.runtime.actions.register(random_1.default.binding);
@@ -12502,12 +12807,14 @@ function requireSensors$1() {
     services2.runtime.actions.register(current_page_1.default.binding);
     services2.runtime.actions.register(previous_page_1.default.binding);
     services2.runtime.actions.register(otherwise_1.default.binding);
+    services2.runtime.actions.register(rule_trigger_1.default.binding);
     services2.runtime.functions.register(abi_ids_1.CoreHostActions.Random.fnId, abi_ids_1.CoreHostActions.Random.key, false, random_1.default.fn, random_1.default.callDef);
     services2.runtime.functions.register(abi_ids_1.CoreHostActions.OnPageEntered.fnId, abi_ids_1.CoreHostActions.OnPageEntered.key, false, on_page_entered_1.default.fn, on_page_entered_1.default.callDef);
     services2.runtime.functions.register(abi_ids_1.CoreHostActions.Timeout.fnId, abi_ids_1.CoreHostActions.Timeout.key, false, timeout_1.default.fn, timeout_1.default.callDef);
     services2.runtime.functions.register(abi_ids_1.CoreHostActions.CurrentPage.fnId, abi_ids_1.CoreHostActions.CurrentPage.key, false, current_page_1.default.fn, current_page_1.default.callDef);
     services2.runtime.functions.register(abi_ids_1.CoreHostActions.PreviousPage.fnId, abi_ids_1.CoreHostActions.PreviousPage.key, false, previous_page_1.default.fn, previous_page_1.default.callDef);
     services2.runtime.functions.register(abi_ids_1.CoreHostActions.Otherwise.fnId, abi_ids_1.CoreHostActions.Otherwise.key, false, otherwise_1.default.fn, otherwise_1.default.callDef);
+    services2.runtime.functions.register(abi_ids_1.CoreHostActions.RuleTrigger.fnId, abi_ids_1.CoreHostActions.RuleTrigger.key, true, rule_trigger_1.default.fn, rule_trigger_1.default.callDef);
   }
   return sensors$1;
 }
@@ -12630,6 +12937,12 @@ function requireModel$1() {
   if (hasRequiredModel$1) return model$1;
   hasRequiredModel$1 = 1;
   Object.defineProperty(model$1, "__esModule", { value: true });
+  model$1.RuleTriggerMode = void 0;
+  model$1.RuleTriggerMode = {
+    When: "when",
+    Otherwise: "otherwise",
+    Then: "then"
+  };
   return model$1;
 }
 var tiles$1 = {};
@@ -12652,6 +12965,7 @@ function requireTiles$1() {
     exports$1.mkVariableTileId = mkVariableTileId;
     exports$1.mkVariableFactoryTileId = mkVariableFactoryTileId;
     exports$1.mkLiteralTileId = mkLiteralTileId;
+    exports$1.mkUniqueLiteralTileId = mkUniqueLiteralTileId;
     exports$1.mkLiteralFactoryTileId = mkLiteralFactoryTileId;
     exports$1.mkAccessorTileId = mkAccessorTileId;
     exports$1.mkPageTileId = mkPageTileId;
@@ -12661,6 +12975,7 @@ function requireTiles$1() {
     exports$1.isCoreVariableFactoryTileId = isCoreVariableFactoryTileId;
     exports$1.isVariableFactoryTileId = isVariableFactoryTileId;
     exports$1.isCoreLiteralFactoryTileId = isCoreLiteralFactoryTileId;
+    exports$1.isLiteralFactoryTileId = isLiteralFactoryTileId;
     const math_1 = /* @__PURE__ */ requireMath();
     const string_1 = /* @__PURE__ */ requireString();
     const tile_ids_1 = /* @__PURE__ */ requireTileIds();
@@ -12781,6 +13096,9 @@ function requireTiles$1() {
       }
       return (0, tile_ids_1.mkTileId)("literal", base);
     }
+    function mkUniqueLiteralTileId(uniqueId) {
+      return (0, tile_ids_1.mkTileId)("literal", uniqueId);
+    }
     function mkLiteralFactoryTileId(factoryId) {
       return (0, tile_ids_1.mkTileId)("lit.factory", factoryId);
     }
@@ -12860,6 +13178,9 @@ function requireTiles$1() {
     ];
     function isCoreLiteralFactoryTileId(tileId) {
       return exports$1.CoreLiteralFactoryTileIds.includes(tileId);
+    }
+    function isLiteralFactoryTileId(tileId) {
+      return string_1.StringUtils.startsWith(tileId, "tile.lit.factory->");
     }
   })(tiles$1);
   return tiles$1;
@@ -14007,6 +14328,11 @@ function requireLiterals() {
   const tiledef_1 = /* @__PURE__ */ requireTiledef();
   const factories_1 = /* @__PURE__ */ requireFactories();
   const kVersion = 2;
+  function namedLiteralMetadata(base, displayName) {
+    const metadata = base ? { ...base, label: displayName } : { label: displayName };
+    metadata.language = (base == null ? void 0 : base.language) ? { ...base.language, form: displayName } : { form: displayName };
+    return metadata;
+  }
   class BrainTileLiteralDef extends tiledef_1.BrainTileDefBase {
     constructor(valueType, value2, opts = {}, services2) {
       if (opts.placement === void 0)
@@ -14015,23 +14341,63 @@ function requireLiterals() {
         opts.persist = true;
       const typeDef = services2.runtime.types.get(valueType);
       if (!typeDef) {
-        throw new error_1.Error(`BrainTileLiteralDef.deserialize: unknown value type ${valueType}`);
+        throw new error_1.Error(`BrainTileLiteralDef: unknown value type ${valueType}`);
       }
-      const valueStr = opts.valueLabel || typeDef.codec.stringify(value2);
+      const valueStr = opts.valueLabel || opts.uniqueId || typeDef.codec.stringify(value2);
       const fmt = opts.displayFormat || interfaces_1.LiteralDisplayFormats.Default;
-      const tileId = (0, interfaces_1.mkLiteralTileId)(valueType, valueStr, fmt);
+      const tileId = opts.uniqueId === void 0 ? (0, interfaces_1.mkLiteralTileId)(valueType, valueStr, fmt) : (0, interfaces_1.mkUniqueLiteralTileId)(opts.uniqueId);
+      if (opts.displayName !== void 0) {
+        opts.metadata = namedLiteralMetadata(opts.metadata, opts.displayName);
+      }
       super(tileId, opts);
       __publicField(this, "kind", "literal");
       __publicField(this, "valueLabel");
       __publicField(this, "valueType");
       __publicField(this, "value");
       __publicField(this, "displayFormat");
+      /** The word this literal reads by, and undefined for one carrying no name. Set it with {@link BrainTileLiteralDef.setDisplayName}. */
+      __publicField(this, "displayName");
+      /**
+       * This literal's own identity, and undefined for one whose tile id follows
+       * its content. Where it is set, the tile id derives from it alone.
+       */
+      __publicField(this, "uniqueId");
       __publicField(this, "services_");
       this.valueType = valueType;
       this.value = value2;
       this.valueLabel = valueStr;
       this.displayFormat = fmt;
+      this.displayName = opts.displayName;
+      this.uniqueId = opts.uniqueId;
       this.services_ = services2;
+    }
+    /**
+     * A literal holding `edit`'s value and name under this literal's tile id,
+     * value type, value label, and display format. A field `edit` leaves
+     * undefined is carried over from this literal.
+     *
+     * Throws when this literal carries no unique identity.
+     */
+    edited(edit) {
+      const uniqueId = this.uniqueId;
+      if (uniqueId === void 0) {
+        throw new error_1.Error(`BrainTileLiteralDef.edited: literal ${this.tileId} carries no unique identity`);
+      }
+      return new BrainTileLiteralDef(this.valueType, edit.value === void 0 ? this.value : edit.value, {
+        uniqueId,
+        valueLabel: this.valueLabel,
+        displayFormat: this.displayFormat,
+        displayName: edit.displayName === void 0 ? this.displayName : edit.displayName
+      }, this.services_);
+    }
+    /**
+     * Names this literal `displayName`, which becomes the word it reads by on
+     * every surface: its `metadata.label` and its `metadata.language.form`. The
+     * tile id is unchanged.
+     */
+    setDisplayName(displayName) {
+      this.displayName = displayName;
+      this.metadata = namedLiteralMetadata(this.metadata, displayName);
     }
     // -- JSON serialization ----------------------------------------------------
     toJson() {
@@ -14039,7 +14405,7 @@ function requireLiterals() {
       if (!typeDef) {
         throw new error_1.Error(`BrainTileLiteralDef.toJson: unknown value type ${this.valueType}`);
       }
-      return {
+      const json = {
         version: kVersion,
         kind: "literal",
         tileId: this.tileId,
@@ -14048,6 +14414,11 @@ function requireLiterals() {
         valueLabel: this.valueLabel,
         displayFormat: this.displayFormat
       };
+      if (this.displayName !== void 0)
+        json.displayName = this.displayName;
+      if (this.uniqueId !== void 0)
+        json.uniqueId = this.uniqueId;
+      return json;
     }
     static fromJson(json, catalog2, services2) {
       if (json.version !== kVersion) {
@@ -14062,7 +14433,9 @@ function requireLiterals() {
       const value2 = literalValueFromJson(typeDef, json.value);
       const tileDef = new BrainTileLiteralDef(json.valueType, value2, {
         valueLabel: json.valueLabel,
-        displayFormat: json.displayFormat
+        displayFormat: json.displayFormat,
+        displayName: json.displayName,
+        uniqueId: json.uniqueId
       }, services2);
       catalog2.registerTileDef(tileDef);
       return tileDef;
@@ -14079,6 +14452,9 @@ function requireLiterals() {
       case runtime_1.NativeType.String:
       case runtime_1.NativeType.Enum:
         return value2;
+      case runtime_1.NativeType.Struct:
+      case runtime_1.NativeType.Buffer:
+        return (0, runtime_1.brainValueToJson)(value2);
       default:
         throw new error_1.Error(`literalValueToJson: unsupported coreType ${typeDef.coreType} (typeId: ${typeDef.typeId})`);
     }
@@ -14093,6 +14469,9 @@ function requireLiterals() {
       case runtime_1.NativeType.String:
       case runtime_1.NativeType.Enum:
         return json;
+      case runtime_1.NativeType.Struct:
+      case runtime_1.NativeType.Buffer:
+        return (0, runtime_1.brainValueFromJson)(json);
       default:
         throw new error_1.Error(`literalValueFromJson: unsupported coreType ${typeDef.coreType} (typeId: ${typeDef.typeId})`);
     }
@@ -14108,7 +14487,8 @@ function requireLiterals() {
     }
     const varType = factoryTileDef.producedDataType || runtime_1.CoreTypeIds.Void;
     const displayFormat2 = opts.displayFormat;
-    const tileDef = new BrainTileLiteralDef(varType, varValue, { displayFormat: displayFormat2 }, services2);
+    const displayName = opts.displayName;
+    const tileDef = new BrainTileLiteralDef(varType, varValue, { displayFormat: displayFormat2, displayName }, services2);
     return tileDef;
   }
   function registerCoreLiteralFactoryTileDefs(services2) {
@@ -14536,7 +14916,7 @@ function requireSentenceProjection() {
   sentenceProjection.sentenceText = sentenceText;
   sentenceProjection.paragraphText = paragraphText;
   sentenceProjection.tileSentenceWord = tileSentenceWord;
-  sentenceProjection.whenTriggerWord = whenTriggerWord;
+  sentenceProjection.triggerModeWord = triggerModeWord;
   sentenceProjection.projectRuleSentence = projectRuleSentence;
   sentenceProjection.projectPageParagraph = projectPageParagraph;
   const catalog_1 = /* @__PURE__ */ requireCatalog$1();
@@ -14589,12 +14969,15 @@ function requireSentenceProjection() {
   const kVerbTemplate = "When I {form} {object}";
   const kStateTemplate = "When I am {form} {object}";
   const kEventTemplate = "When {form} {object}";
-  const kAdverbTemplate = "{form} {object}";
   const kSubjectlessTemplate = "When {condition}";
   const kNegatedVerbTemplate = "When I do {negation} {form} {object}";
   const kNegatedStateTemplate = "When I am {negation} {form} {object}";
   const kNegatedEventTemplate = "When {negation} {form} {object}";
   const kAlwaysWord = "Always";
+  const kOtherwiseWord = "Otherwise";
+  const kThenWord = "Then";
+  const kOtherwiseConditionTemplate = "Otherwise, when {condition}";
+  const kThenConditionTemplate = "Then, when {condition}";
   const kBareDefaultTemplate = "{frame, select, verb {anything} other {}}";
   const kTextValueTemplate = '"{value}"';
   const kWordGlueTemplate = "{a} {b}";
@@ -14605,12 +14988,15 @@ function requireSentenceProjection() {
   const kChildConsequenceTemplate = "{parent}, and {consequence}";
   const kIncompleteConditionTemplate = "{parent}, when {condition}";
   const kIncompleteConsequenceTemplate = "{parent}, {consequence}";
+  const kChildOtherwiseConditionTemplate = "{parent}, otherwise when {condition}";
+  const kChildOtherwiseConsequenceTemplate = "{parent}, otherwise {consequence}";
+  const kChildThenConditionTemplate = "{parent}, then when {condition}";
+  const kChildThenConsequenceTemplate = "{parent}, then {consequence}";
   const kChildClauseTemplate = "{condition}, {action}";
   const kSentenceGlueTemplate = "{sentence} {rest}";
   const kChildVerbTemplate = "I {form} {object}";
   const kChildStateTemplate = "I am {form} {object}";
   const kChildEventTemplate = "{form} {object}";
-  const kChildAdverbTemplate = "{form} {object}";
   const kChildSubjectlessTemplate = "{condition}";
   const kChildNegatedVerbTemplate = "I do {negation} {form} {object}";
   const kChildNegatedStateTemplate = "I am {negation} {form} {object}";
@@ -14861,9 +15247,6 @@ function requireSentenceProjection() {
     if (frame === "event") {
       return kEventTemplate;
     }
-    if (frame === "adverb") {
-      return kAdverbTemplate;
-    }
     return kVerbTemplate;
   }
   function negatedFrameTemplate(frame) {
@@ -14877,9 +15260,6 @@ function requireSentenceProjection() {
   }
   function isSubjectlessWhenSide(tiles2) {
     const head = tiles2.get(0);
-    if (head.kind === "sensor" && tileFrame(head) === "adverb") {
-      return tiles2.size() > 1;
-    }
     return head.kind !== "sensor" || (0, interfaces_1.isInlineTileDef)(head);
   }
   function startsOwnExpression(tileDef) {
@@ -14890,7 +15270,7 @@ function requireSentenceProjection() {
       return void 0;
     }
     const operand = tiles2.get(1);
-    if (operand.kind !== "sensor" || tileFrame(operand) === "adverb") {
+    if (operand.kind !== "sensor") {
       return void 0;
     }
     for (let i = 2; i < tiles2.size(); i++) {
@@ -14922,8 +15302,50 @@ function requireSentenceProjection() {
     slots.push(slot("object", tiles2.size() > 1 ? joinWords(localizer2, tiles2, 1, 0) : barePhrase(localizer2, head, 0)));
     return renderPhrase(localizer2, frameTemplate(tileFrame(head)), kWhenContext, slots);
   }
-  function whenTriggerWord(localizer2) {
+  function childFrameTemplate(frame) {
+    if (frame === "state") {
+      return kChildStateTemplate;
+    }
+    if (frame === "event") {
+      return kChildEventTemplate;
+    }
+    return kChildVerbTemplate;
+  }
+  function childNegatedFrameTemplate(frame) {
+    if (frame === "state") {
+      return kChildNegatedStateTemplate;
+    }
+    if (frame === "event") {
+      return kChildNegatedEventTemplate;
+    }
+    return kChildNegatedVerbTemplate;
+  }
+  function projectChildWhenClause(localizer2, tiles2) {
+    const head = tiles2.get(0);
+    const slots = new list_1.List();
+    const sensed = negatedSensor(tiles2);
+    if (sensed !== void 0) {
+      return renderPhrase(localizer2, childNegatedFrameTemplate(tileFrame(sensed)), kConnectiveContext, negatedFrameSlots(localizer2, tiles2, sensed));
+    }
+    if (isSubjectlessWhenSide(tiles2)) {
+      slots.push(slot("condition", joinWords(localizer2, tiles2, 0, 0)));
+      return renderPhrase(localizer2, kChildSubjectlessTemplate, kConnectiveContext, slots);
+    }
+    slots.push(slot("form", wordPhrase(localizer2, head, 0)));
+    slots.push(slot("object", tiles2.size() > 1 ? joinWords(localizer2, tiles2, 1, 0) : barePhrase(localizer2, head, 0)));
+    return renderPhrase(localizer2, childFrameTemplate(tileFrame(head)), kConnectiveContext, slots);
+  }
+  function triggerModeWord(trigger, localizer2) {
+    if (trigger === interfaces_1.RuleTriggerMode.Otherwise) {
+      return localizer2.tr(kOtherwiseWord, void 0, kWhenContext);
+    }
+    if (trigger === interfaces_1.RuleTriggerMode.Then) {
+      return localizer2.tr(kThenWord, void 0, kWhenContext);
+    }
     return localizer2.tr(kAlwaysWord, void 0, kWhenContext);
+  }
+  function modeConditionTemplate(trigger) {
+    return trigger === interfaces_1.RuleTriggerMode.Otherwise ? kOtherwiseConditionTemplate : kThenConditionTemplate;
   }
   function isUnfinishedClause(rule2) {
     return rule2.do().tiles().isEmpty();
@@ -14934,12 +15356,17 @@ function requireSentenceProjection() {
   function projectRuleClause(localizer2, rule2) {
     const whenTiles = rule2.when().tiles();
     const doTiles = rule2.do().tiles();
+    const mode = rule2.trigger();
     let trigger;
     if (whenTiles.isEmpty()) {
       trigger = new list_1.List();
-      trigger.push(glueSegment(whenTriggerWord(localizer2)));
-    } else {
+      trigger.push(glueSegment(triggerModeWord(mode, localizer2)));
+    } else if (mode === interfaces_1.RuleTriggerMode.When) {
       trigger = projectWhenClause(localizer2, whenTiles);
+    } else {
+      const modeSlots = new list_1.List();
+      modeSlots.push(slot("condition", projectChildWhenClause(localizer2, whenTiles)));
+      trigger = renderPhrase(localizer2, modeConditionTemplate(mode), kWhenContext, modeSlots);
     }
     if (doTiles.isEmpty()) {
       return trigger;
@@ -15038,42 +15465,6 @@ function requireSentenceProjection() {
     });
     return mergeGlueEntries(out.asReadonly());
   }
-  function childFrameTemplate(frame) {
-    if (frame === "state") {
-      return kChildStateTemplate;
-    }
-    if (frame === "event") {
-      return kChildEventTemplate;
-    }
-    if (frame === "adverb") {
-      return kChildAdverbTemplate;
-    }
-    return kChildVerbTemplate;
-  }
-  function childNegatedFrameTemplate(frame) {
-    if (frame === "state") {
-      return kChildNegatedStateTemplate;
-    }
-    if (frame === "event") {
-      return kChildNegatedEventTemplate;
-    }
-    return kChildNegatedVerbTemplate;
-  }
-  function projectChildWhenClause(localizer2, tiles2) {
-    const head = tiles2.get(0);
-    const slots = new list_1.List();
-    const sensed = negatedSensor(tiles2);
-    if (sensed !== void 0) {
-      return renderPhrase(localizer2, childNegatedFrameTemplate(tileFrame(sensed)), kConnectiveContext, negatedFrameSlots(localizer2, tiles2, sensed));
-    }
-    if (isSubjectlessWhenSide(tiles2)) {
-      slots.push(slot("condition", joinWords(localizer2, tiles2, 0, 0)));
-      return renderPhrase(localizer2, kChildSubjectlessTemplate, kConnectiveContext, slots);
-    }
-    slots.push(slot("form", wordPhrase(localizer2, head, 0)));
-    slots.push(slot("object", tiles2.size() > 1 ? joinWords(localizer2, tiles2, 1, 0) : barePhrase(localizer2, head, 0)));
-    return renderPhrase(localizer2, childFrameTemplate(tileFrame(head)), kConnectiveContext, slots);
-  }
   function projectChildClause(localizer2, rule2) {
     const whenTiles = rule2.when().tiles();
     const doTiles = rule2.do().tiles();
@@ -15092,7 +15483,13 @@ function requireSentenceProjection() {
   function isTilelessRule(rule2) {
     return rule2.when().tiles().isEmpty() && rule2.do().tiles().isEmpty();
   }
-  function childConnectiveTemplate(unfinished, childHasCondition) {
+  function childConnectiveTemplate(trigger, unfinished, childHasCondition) {
+    if (trigger === interfaces_1.RuleTriggerMode.Otherwise) {
+      return childHasCondition ? kChildOtherwiseConditionTemplate : kChildOtherwiseConsequenceTemplate;
+    }
+    if (trigger === interfaces_1.RuleTriggerMode.Then) {
+      return childHasCondition ? kChildThenConditionTemplate : kChildThenConsequenceTemplate;
+    }
     if (childHasCondition) {
       return unfinished ? kIncompleteConditionTemplate : kChildConditionTemplate;
     }
@@ -15112,7 +15509,7 @@ function requireSentenceProjection() {
       const slots = new list_1.List();
       slots.push(paragraphSlot("parent", out.entries.asReadonly()));
       slots.push(paragraphSlot(childHasCondition ? "condition" : "consequence", childEntries.asReadonly()));
-      const source = childConnectiveTemplate(out.unfinished, childHasCondition);
+      const source = childConnectiveTemplate(child.trigger(), out.unfinished, childHasCondition);
       const entries = composeEntries(localizer2, source, kConnectiveContext, slots.asReadonly());
       out = attachChildRules(localizer2, { entries, unfinished: isUnfinishedClause(child) }, child.children());
     }
@@ -15184,6 +15581,9 @@ function requireDiagnostics() {
     ParseDiagCode2[ParseDiagCode2["TileRequirementsNotProvided"] = 1018] = "TileRequirementsNotProvided";
     ParseDiagCode2[ParseDiagCode2["TileWhenResultUnavailable"] = 1019] = "TileWhenResultUnavailable";
     ParseDiagCode2[ParseDiagCode2["NoPrecedingSiblingRule"] = 1020] = "NoPrecedingSiblingRule";
+    ParseDiagCode2[ParseDiagCode2["OtherwiseTriggerNoPrecedingSiblingRule"] = 1021] = "OtherwiseTriggerNoPrecedingSiblingRule";
+    ParseDiagCode2[ParseDiagCode2["ThenTriggerNoPrecedingSiblingRule"] = 1022] = "ThenTriggerNoPrecedingSiblingRule";
+    ParseDiagCode2[ParseDiagCode2["Unused1023"] = 1023] = "Unused1023";
   })(ParseDiagCode || (diagnostics.ParseDiagCode = ParseDiagCode = {}));
   var TypeDiagCode;
   (function(TypeDiagCode2) {
@@ -15284,6 +15684,7 @@ function requireParser() {
   parser.parseBrainTiles = parseBrainTiles;
   parser.validateTilePlacement = validateTilePlacement;
   parser.validatePrecedingSiblingConsumers = validatePrecedingSiblingConsumers;
+  parser.validateTriggerMode = validateTriggerMode;
   parser.collectProvidedOutputKeys = collectProvidedOutputKeys;
   parser.validateOutputProviders = validateOutputProviders;
   parser.whenResultConsumerEligible = whenResultConsumerEligible;
@@ -16261,6 +16662,19 @@ function requireParser() {
     }
     return diags;
   }
+  function validateTriggerMode(trigger, hasPrecedingSibling) {
+    const diags = list_1.List.empty();
+    if (hasPrecedingSibling || trigger === interfaces_1.RuleTriggerMode.When) {
+      return diags;
+    }
+    const otherwiseMode = trigger === interfaces_1.RuleTriggerMode.Otherwise;
+    diags.push({
+      code: otherwiseMode ? diagnostics_1.ParseDiagCode.OtherwiseTriggerNoPrecedingSiblingRule : diagnostics_1.ParseDiagCode.ThenTriggerNoPrecedingSiblingRule,
+      message: otherwiseMode ? "An 'otherwise' rule needs a rule above it at the same level to complement" : "A 'then' rule needs a rule above it at the same level to follow",
+      span: { from: 0, to: 0 }
+    });
+    return diags;
+  }
   function collectProvidedOutputKeys(tiles2, keys) {
     for (let i = 0; i < tiles2.size(); i++) {
       const provided = tiles2.get(i).providedOutputs();
@@ -16417,6 +16831,7 @@ function requireTileSuggestions() {
   tileSuggestions.availableWhenResultType = availableWhenResultType;
   tileSuggestions.collectRuleHierarchyCapabilities = collectRuleHierarchyCapabilities;
   tileSuggestions.collectRuleHierarchyOutputKeys = collectRuleHierarchyOutputKeys;
+  tileSuggestions.availableTriggerModes = availableTriggerModes;
   tileSuggestions.suggestTiles = suggestTiles;
   tileSuggestions.parseTilesForSuggestions = parseTilesForSuggestions;
   tileSuggestions.countUnclosedParens = countUnclosedParens;
@@ -17412,6 +17827,9 @@ function requireTileSuggestions() {
         const expr = parseTilesForSuggestions(whenTiles);
         return whenExprResultType(expr, operatorOverloads);
       }
+      if (current.trigger() !== interfaces_1.RuleTriggerMode.When) {
+        return runtime_1.CoreTypeIds.Boolean;
+      }
       current = current.ancestor();
     }
     return void 0;
@@ -17454,6 +17872,12 @@ function requireTileSuggestions() {
     if (siblings === void 0)
       return false;
     return siblings.indexOf(ruleDef) > 0;
+  }
+  function availableTriggerModes(ruleDef) {
+    if (!hasPrecedingSiblingRule(ruleDef)) {
+      return list_1.List.from([interfaces_1.RuleTriggerMode.When]);
+    }
+    return list_1.List.from([interfaces_1.RuleTriggerMode.When, interfaces_1.RuleTriggerMode.Otherwise, interfaces_1.RuleTriggerMode.Then]);
   }
   function suggestTiles(context2, catalogs, services2) {
     const { conversions: conversions2 } = services2.shared;
@@ -18697,6 +19121,26 @@ function requireEmitter() {
       this.addFixup(skipLabel, "a");
     }
     /**
+     * Mark the end of a WHEN boundary that fires on a truthy WHEN result and
+     * records the chain-aware firing outcome.
+     *
+     * @param skipLabel - Label to jump to if WHEN evaluated to false (typically after DO section)
+     */
+    whenEndChain(skipLabel) {
+      this.emit({ op: bytecode_1.Op.WHEN_END_CHAIN, a: 0 });
+      this.addFixup(skipLabel, "a");
+    }
+    /**
+     * Mark the end of a WHEN boundary that fires on a present (non-nil) WHEN
+     * result and records the chain-aware firing outcome.
+     *
+     * @param skipLabel - Label to jump to when the WHEN result is nil (typically after the DO section)
+     */
+    whenEndPresentChain(skipLabel) {
+      this.emit({ op: bytecode_1.Op.WHEN_END_PRESENT_CHAIN, a: 0 });
+      this.addFixup(skipLabel, "a");
+    }
+    /**
      * Mark the start of a DO boundary.
      */
     doStart() {
@@ -19905,7 +20349,7 @@ function requireRuleCompiler() {
       const gathered = new dict_1.Dict();
       for (let i = 0; i < slotExprs.size(); i++) {
         const slot = slotExprs.get(i);
-        const argSlot = argSlots.get(slot.slotId);
+        const argSlot = argSlots.at(slot.slotId);
         if (argSlot == null ? void 0 : argSlot.repeated) {
           if (gathered.get(slot.slotId)) {
             continue;
@@ -20247,7 +20691,7 @@ function requireBrainCompiler() {
         if (visitedFuncs.has(funcId))
           continue;
         visitedFuncs.add(funcId);
-        const fn = this.functions.get(funcId);
+        const fn = this.functions.at(funcId);
         if (!fn)
           continue;
         const childFuncIds = list_1.List.empty();
@@ -20336,6 +20780,7 @@ function requireBrainCompiler() {
       this.pushParseDiags((0, parser_1.validateTilePlacement)(doTiles, interfaces_1.RuleSide.Do, this.localizer), rulePath2);
       this.pushParseDiags((0, parser_1.validatePrecedingSiblingConsumers)(whenTiles, siblingIndex > 0, this.localizer), rulePath2);
       this.pushParseDiags((0, parser_1.validatePrecedingSiblingConsumers)(doTiles, siblingIndex > 0, this.localizer), rulePath2);
+      this.pushParseDiags((0, parser_1.validateTriggerMode)(ruleDef.trigger(), siblingIndex > 0), rulePath2);
       const providedOutputKeys = (0, tile_suggestions_1.collectRuleHierarchyOutputKeys)(ruleDef);
       this.pushParseDiags((0, parser_1.validateOutputProviders)(whenTiles, providedOutputKeys, this.localizer), rulePath2);
       this.pushParseDiags((0, parser_1.validateOutputProviders)(doTiles, providedOutputKeys, this.localizer), rulePath2);
@@ -20366,14 +20811,32 @@ function requireBrainCompiler() {
       const emitter2 = new emitter_1.BytecodeEmitter();
       const endLabel = emitter2.label();
       const whenIsEmpty = whenParseResult.exprs.get(0).kind === "empty";
-      if (!whenIsEmpty) {
-        emitter2.whenStart();
-        this.emitExprs(whenParseResult.exprs, emitter2, typeEnv, true, rulePath2, interfaces_1.RuleSide.When, whenTiles);
-        if (isBarePresenceGatedSensor(whenParseResult.exprs.get(0))) {
-          emitter2.whenEndPresent(endLabel);
-        } else {
-          emitter2.whenEnd(endLabel);
+      const presenceGated = !whenIsEmpty && isBarePresenceGatedSensor(whenParseResult.exprs.get(0));
+      const trigger = ruleDef.trigger();
+      if (trigger === interfaces_1.RuleTriggerMode.When) {
+        if (!whenIsEmpty) {
+          emitter2.whenStart();
+          this.emitExprs(whenParseResult.exprs, emitter2, typeEnv, true, rulePath2, interfaces_1.RuleSide.When, whenTiles);
+          if (presenceGated) {
+            emitter2.whenEndPresent(endLabel);
+          } else {
+            emitter2.whenEnd(endLabel);
+          }
         }
+      } else {
+        emitter2.whenStart();
+        this.emitTriggerPrologue(emitter2, trigger);
+        if (!whenIsEmpty) {
+          const unarmedLabel = emitter2.label();
+          const gateLabel = emitter2.label();
+          emitter2.jmpIfFalse(unarmedLabel);
+          this.emitExprs(whenParseResult.exprs, emitter2, typeEnv, true, rulePath2, interfaces_1.RuleSide.When, whenTiles);
+          emitter2.jmp(gateLabel);
+          emitter2.mark(unarmedLabel);
+          emitter2.pushConst(this.constantPool.addOther(value_1.NIL_VALUE));
+          emitter2.mark(gateLabel);
+        }
+        this.emitTriggerGate(emitter2, trigger, presenceGated, endLabel);
       }
       emitter2.doStart();
       this.emitExprs(doParseResult.exprs, emitter2, typeEnv, false, rulePath2, interfaces_1.RuleSide.Do, doTiles);
@@ -20391,6 +20854,48 @@ function requireBrainCompiler() {
         variableNames: this.variableNames,
         childFuncIds
       };
+    }
+    /**
+     * Emit the arming read that opens the WHEN section of a rule whose trigger
+     * mode is not `when`, leaving its boolean answer on the operand stack.
+     *
+     * An `otherwise` rule reads the `otherwise` host sensor synchronously. A
+     * `then` rule dispatches the rule-trigger host action asynchronously and
+     * awaits it, so a rule whose subject is still in flight parks here.
+     */
+    emitTriggerPrologue(emitter2, trigger) {
+      const callSiteId = this.nextCallSiteIdCounter.value++;
+      if (trigger === interfaces_1.RuleTriggerMode.Otherwise) {
+        emitter2.hostActionCall(runtime_1.CoreHostActions.Otherwise.actionId, 0, callSiteId);
+        return;
+      }
+      emitter2.hostActionCallAsync(runtime_1.CoreHostActions.RuleTrigger.actionId, 0, callSiteId);
+      emitter2.await();
+    }
+    /**
+     * Emit the WHEN gate closing a rule whose trigger mode is not `when`. An
+     * `otherwise` rule takes the chain variant of the gate its expression selects,
+     * so its record carries the ladder outcome; a `then` rule takes the ordinary
+     * variant.
+     *
+     * @param presenceGated - Whether the rule's WHEN expression selected the
+     *   presence gate.
+     * @param endLabel - Label past the DO section, taken when the gate does not fire.
+     */
+    emitTriggerGate(emitter2, trigger, presenceGated, endLabel) {
+      if (trigger === interfaces_1.RuleTriggerMode.Otherwise) {
+        if (presenceGated) {
+          emitter2.whenEndPresentChain(endLabel);
+        } else {
+          emitter2.whenEndChain(endLabel);
+        }
+        return;
+      }
+      if (presenceGated) {
+        emitter2.whenEndPresent(endLabel);
+      } else {
+        emitter2.whenEnd(endLabel);
+      }
     }
     /**
      * Emit bytecode for a list of expressions. Uses the global variable pool for
@@ -21727,7 +22232,7 @@ function requireCompiler() {
   hasRequiredCompiler = 1;
   (function(exports$1) {
     Object.defineProperty(exports$1, "__esModule", { value: true });
-    exports$1.acceptExprVisitor = exports$1.treeshakeProgram = exports$1.whenResultConsumerEligible = exports$1.validateWhenResultConsumers = exports$1.validatePrecedingSiblingConsumers = exports$1.validateOutputProviders = exports$1.validateCapabilityRequirements = exports$1.parseBrainTiles = exports$1.collectProvidedOutputKeys = exports$1.collectProvidedCapabilities = exports$1.linkBrainProgram = exports$1.runBrainLinkPipeline = exports$1.BytecodeEmitter = exports$1.TypeDiagCode = exports$1.summarizeBrainBuildDiagnostics = exports$1.ParseDiagCode = exports$1.LinkDiagCode = exports$1.isBrainBuildError = exports$1.diagnosticSeverity = exports$1.CompilationDiagCode = exports$1.BrainBuildError = exports$1.ConstantPool = exports$1.compileBrain = exports$1.BrainCompiler = void 0;
+    exports$1.acceptExprVisitor = exports$1.treeshakeProgram = exports$1.whenResultConsumerEligible = exports$1.validateWhenResultConsumers = exports$1.validateTriggerMode = exports$1.validatePrecedingSiblingConsumers = exports$1.validateOutputProviders = exports$1.validateCapabilityRequirements = exports$1.parseBrainTiles = exports$1.collectProvidedOutputKeys = exports$1.collectProvidedCapabilities = exports$1.linkBrainProgram = exports$1.runBrainLinkPipeline = exports$1.BytecodeEmitter = exports$1.TypeDiagCode = exports$1.summarizeBrainBuildDiagnostics = exports$1.ParseDiagCode = exports$1.LinkDiagCode = exports$1.isBrainBuildError = exports$1.diagnosticSeverity = exports$1.CompilationDiagCode = exports$1.BrainBuildError = exports$1.ConstantPool = exports$1.compileBrain = exports$1.BrainCompiler = void 0;
     exports$1.parseRule = parseRule;
     var brain_compiler_1 = /* @__PURE__ */ requireBrainCompiler();
     Object.defineProperty(exports$1, "BrainCompiler", { enumerable: true, get: function() {
@@ -21796,6 +22301,9 @@ function requireCompiler() {
     Object.defineProperty(exports$1, "validatePrecedingSiblingConsumers", { enumerable: true, get: function() {
       return parser_1.validatePrecedingSiblingConsumers;
     } });
+    Object.defineProperty(exports$1, "validateTriggerMode", { enumerable: true, get: function() {
+      return parser_1.validateTriggerMode;
+    } });
     Object.defineProperty(exports$1, "validateWhenResultConsumers", { enumerable: true, get: function() {
       return parser_1.validateWhenResultConsumers;
     } });
@@ -21826,7 +22334,7 @@ function requireCompiler() {
       }
       return { ...result, diags: list_1.List.from(result.diags.toArray()).concat(list_1.List.from(extra.toArray())) };
     }
-    function parseRule(whenSrc, doSrc, catalogs, conversions2, typeRegistry, localizer2, inheritedOutputKeys, inheritedCapabilities, inheritedWhenResultType, operatorOverloads, hasPrecedingSiblingRule = true) {
+    function parseRule(whenSrc, doSrc, catalogs, conversions2, typeRegistry, localizer2, inheritedOutputKeys, inheritedCapabilities, inheritedWhenResultType, operatorOverloads, hasPrecedingSiblingRule = true, trigger = interfaces_1.RuleTriggerMode.When) {
       const providedOutputKeys = new uniqueset_1.UniqueSet();
       inheritedOutputKeys == null ? void 0 : inheritedOutputKeys.forEach((key) => {
         providedOutputKeys.add(key);
@@ -21840,7 +22348,7 @@ function requireCompiler() {
       const doParsed = (0, parser_2.parseBrainTiles)(doSrc, localizer2, -1, 0, whenParsed.nextNodeId);
       const whenSideWhenResult = inheritedWhenResultType;
       const doSideWhenResult = whenSrc.size() > 0 ? (0, tile_suggestions_1.whenExprResultType)(whenParsed.exprs.get(0), operatorOverloads, conversions2) : inheritedWhenResultType;
-      const whenParseResult = appendParseDiags(appendParseDiags(appendParseDiags(appendParseDiags(appendParseDiags(whenParsed, (0, parser_2.validateTilePlacement)(whenSrc, interfaces_1.RuleSide.When, localizer2)), (0, parser_2.validateOutputProviders)(whenSrc, providedOutputKeys, localizer2)), (0, parser_2.validateCapabilityRequirements)(whenSrc, availableCapabilities, catalogs, localizer2)), (0, parser_2.validateWhenResultConsumers)(whenSrc, whenSideWhenResult, conversions2, typeRegistry, localizer2)), (0, parser_2.validatePrecedingSiblingConsumers)(whenSrc, hasPrecedingSiblingRule, localizer2));
+      const whenParseResult = appendParseDiags(appendParseDiags(appendParseDiags(appendParseDiags(appendParseDiags(appendParseDiags(whenParsed, (0, parser_2.validateTilePlacement)(whenSrc, interfaces_1.RuleSide.When, localizer2)), (0, parser_2.validateOutputProviders)(whenSrc, providedOutputKeys, localizer2)), (0, parser_2.validateCapabilityRequirements)(whenSrc, availableCapabilities, catalogs, localizer2)), (0, parser_2.validateWhenResultConsumers)(whenSrc, whenSideWhenResult, conversions2, typeRegistry, localizer2)), (0, parser_2.validatePrecedingSiblingConsumers)(whenSrc, hasPrecedingSiblingRule, localizer2)), (0, parser_2.validateTriggerMode)(trigger, hasPrecedingSiblingRule));
       const doParseResult = appendParseDiags(appendParseDiags(appendParseDiags(appendParseDiags(appendParseDiags(doParsed, (0, parser_2.validateTilePlacement)(doSrc, interfaces_1.RuleSide.Do, localizer2)), (0, parser_2.validateOutputProviders)(doSrc, providedOutputKeys, localizer2)), (0, parser_2.validateCapabilityRequirements)(doSrc, availableCapabilities, catalogs, localizer2)), (0, parser_2.validateWhenResultConsumers)(doSrc, doSideWhenResult, conversions2, typeRegistry, localizer2)), (0, parser_2.validatePrecedingSiblingConsumers)(doSrc, hasPrecedingSiblingRule, localizer2));
       const allExprs = list_1.List.from(whenParseResult.exprs.toArray()).concat(list_1.List.from(doParseResult.exprs.toArray()));
       const allDiags = list_1.List.from(whenParseResult.diags.toArray()).concat(list_1.List.from(doParseResult.diags.toArray()));
@@ -22145,11 +22653,11 @@ function requireBrain$1() {
       this.runtime = new runtime_1.BrainRuntime(program2, pageMetadata, hostServices, contextData, previousVariables, vmEvents);
       this.unsubs.push(this.runtime.events().on("page_activated", ({ pageIndex }) => {
         var _a2;
-        (_a2 = this.pages.get(pageIndex)) == null ? void 0 : _a2.activate();
+        (_a2 = this.pages.at(pageIndex)) == null ? void 0 : _a2.activate();
       }));
       this.unsubs.push(this.runtime.events().on("page_deactivated", ({ pageIndex }) => {
         var _a2;
-        (_a2 = this.pages.get(pageIndex)) == null ? void 0 : _a2.deactivate();
+        (_a2 = this.pages.at(pageIndex)) == null ? void 0 : _a2.deactivate();
       }));
     }
     /**
@@ -23491,6 +23999,7 @@ function requireRuledef() {
         __publicField(this, "when_");
         __publicField(this, "do_");
         __publicField(this, "comment_");
+        __publicField(this, "trigger_", interfaces_1.RuleTriggerMode.When);
         __publicField(this, "tileSetSubscriptions_", new dict_1.Dict());
         __publicField(this, "childRuleSubscriptions_", new dict_1.Dict());
         __publicField(this, "dirtyChangedDebounceThread_");
@@ -23500,6 +24009,12 @@ function requireRuledef() {
          * without touching the rule's own tiles invalidates the stored result.
          */
         __publicField(this, "typecheckedWithPrecedingSibling_");
+        /**
+         * The trigger mode the rule carried when the stored typecheck result was
+         * produced. A mode change without an edit to the rule's own tiles
+         * invalidates the stored result.
+         */
+        __publicField(this, "typecheckedWithTrigger_");
         this.rng_ = rng2;
         this.ruleId_ = ruleId || (0, document_id_1.mintDocumentId)(rng2);
         this.when_ = new tileset_1.BrainTileSet(this, interfaces_1.RuleSide.When);
@@ -23575,6 +24090,25 @@ function requireRuledef() {
         }
         this.comment_ = comment || void 0;
       }
+      /**
+       * The trigger mode this rule carries. A rule that has never been given one,
+       * and one loaded from a document saved before rules carried a mode, reads
+       * {@link RuleTriggerMode.When}.
+       */
+      trigger() {
+        return this.trigger_;
+      }
+      /**
+       * Give this rule `trigger` as the mode arming it, marking the rule dirty so
+       * it is recompiled and the document reads as changed.
+       */
+      setTrigger(trigger) {
+        if (this.trigger_ === trigger) {
+          return;
+        }
+        this.trigger_ = trigger;
+        this.markDirty();
+      }
       isDirty() {
         if (this.when_.isDirty() || this.do_.isDirty()) {
           return true;
@@ -23604,7 +24138,7 @@ function requireRuledef() {
       typecheck() {
         var _a;
         const hasPrecedingSibling = this.myIndex_() > 0;
-        if (this.when_.isDirty() || this.do_.isDirty() || !this.when_.typecheckResult() || !this.do_.typecheckResult() || this.typecheckedWithPrecedingSibling_ !== hasPrecedingSibling) {
+        if (this.when_.isDirty() || this.do_.isDirty() || !this.when_.typecheckResult() || !this.do_.typecheckResult() || this.typecheckedWithPrecedingSibling_ !== hasPrecedingSibling || this.typecheckedWithTrigger_ !== this.trigger_) {
           const catalogs = this.gatherCatalogs();
           const whenTiles = this.when_.tiles();
           const doTiles = this.do_.tiles();
@@ -23626,10 +24160,11 @@ function requireRuledef() {
             const operatorOverloads = brain2 == null ? void 0 : brain2.servicesOperatorOverloads();
             const enclosing = this.ancestor();
             const inheritedWhenResultType = enclosing ? (0, tile_suggestions_1.getRuleWhenResultType)(enclosing, operatorOverloads, conversions2) : void 0;
-            const typecheckResult = (0, compiler_1.parseRule)(whenTiles, doTiles, catalogs, conversions2, typeRegistry, localizer2, inheritedOutputKeys, inheritedCapabilities, inheritedWhenResultType, operatorOverloads, hasPrecedingSibling);
+            const typecheckResult = (0, compiler_1.parseRule)(whenTiles, doTiles, catalogs, conversions2, typeRegistry, localizer2, inheritedOutputKeys, inheritedCapabilities, inheritedWhenResultType, operatorOverloads, hasPrecedingSibling, this.trigger_);
             this.when_.setTypecheckResult(typecheckResult);
             this.do_.setTypecheckResult(typecheckResult);
             this.typecheckedWithPrecedingSibling_ = hasPrecedingSibling;
+            this.typecheckedWithTrigger_ = this.trigger_;
           }
         }
         this.children_.forEach((child) => {
@@ -24018,6 +24553,9 @@ function requireRuledef() {
         if (this.comment_ !== void 0) {
           json.comment = this.comment_;
         }
+        if (this.trigger_ !== interfaces_1.RuleTriggerMode.When) {
+          json.trigger = this.trigger_;
+        }
         return json;
       }
       static fromJson(json, page2, brain2) {
@@ -24027,17 +24565,18 @@ function requireRuledef() {
         rule2.deserializeJson(json, catalogs);
         return rule2;
       }
-      deserializeJson(json, catalogs) {
-        if (json.version !== kVersion) {
-          throw new error_1.Error(`BrainRuleDef.deserializeJson: unsupported version ${json.version}`);
+      deserializeJson(serialized, catalogs) {
+        if (serialized.version !== kVersion) {
+          throw new error_1.Error(`BrainRuleDef.deserializeJson: unsupported version ${serialized.version}`);
         }
-        this.when_.deserializeJson(json.when, catalogs);
-        this.do_.deserializeJson(json.do, catalogs);
-        this.comment_ = json.comment || void 0;
-        for (let i = 0; i < json.children.size(); i++) {
-          const child = new BrainRuleDef(this.rng_, json.children.get(i).ruleId);
+        this.when_.deserializeJson(serialized.when, catalogs);
+        this.do_.deserializeJson(serialized.do, catalogs);
+        this.comment_ = serialized.comment || void 0;
+        this.trigger_ = serialized.trigger || interfaces_1.RuleTriggerMode.When;
+        for (let i = 0; i < serialized.children.size(); i++) {
+          const child = new BrainRuleDef(this.rng_, serialized.children.get(i).ruleId);
           child.setPage(this.page());
-          child.deserializeJson(json.children.get(i), catalogs);
+          child.deserializeJson(serialized.children.get(i), catalogs);
           this.children_.push(child);
           child.ancestor_ = this;
           this.subscribeToChildRule_(child);
@@ -24316,6 +24855,9 @@ function requireBraindef() {
       }
       if (r.comment !== void 0) {
         json.comment = r.comment;
+      }
+      if (r.trigger !== void 0) {
+        json.trigger = r.trigger;
       }
       return json;
     }
@@ -24873,6 +25415,8 @@ function requireBrainJsonCodec() {
           }
           case "literal": {
             const literalDef = tileDef;
+            if (literalDef.uniqueId !== void 0)
+              return this.plainId(tileDef.tileId, "literal tile id");
             const typeRef = this.encodeTypeRefById(literalDef.valueType, "literal value type");
             if (types_1.TypeUtils.isString(typeRef))
               return this.plainId(tileDef.tileId, "literal tile id");
@@ -24904,8 +25448,8 @@ function requireBrainJsonCodec() {
       }
       encodeCatalogEntry(entry) {
         switch (entry.kind) {
-          case "literal":
-            return {
+          case "literal": {
+            const result = {
               version: entry.version,
               kind: "literal",
               valueType: this.encodeTypeRefById(entry.valueType, "literal value type"),
@@ -24913,6 +25457,12 @@ function requireBrainJsonCodec() {
               valueLabel: entry.valueLabel,
               displayFormat: entry.displayFormat
             };
+            if (entry.displayName !== void 0)
+              result.displayName = entry.displayName;
+            if (entry.uniqueId !== void 0)
+              result.uniqueId = entry.uniqueId;
+            return result;
+          }
           case "variable":
             return {
               version: entry.version,
@@ -24966,6 +25516,8 @@ function requireBrainJsonCodec() {
           result.ruleId = ruleJson.ruleId;
         if (ruleJson.comment !== void 0)
           result.comment = ruleJson.comment;
+        if (ruleJson.trigger !== void 0)
+          result.trigger = ruleJson.trigger;
         return result;
       }
     }
@@ -25097,15 +25649,21 @@ function requireBrainJsonCodec() {
         switch (entry.kind) {
           case "literal": {
             const typeId = this.decodeTypeRef(entry.valueType).typeId;
-            return {
+            const tileId = entry.uniqueId === void 0 ? (0, interfaces_1.mkLiteralTileId)(typeId, entry.valueLabel, entry.displayFormat === interfaces_1.LiteralDisplayFormats.Default ? void 0 : entry.displayFormat) : (0, interfaces_1.mkUniqueLiteralTileId)(entry.uniqueId);
+            const result = {
               version: entry.version,
               kind: "literal",
-              tileId: (0, interfaces_1.mkLiteralTileId)(typeId, entry.valueLabel, entry.displayFormat === interfaces_1.LiteralDisplayFormats.Default ? void 0 : entry.displayFormat),
+              tileId,
               valueType: typeId,
               value: entry.value,
               valueLabel: entry.valueLabel,
               displayFormat: entry.displayFormat
             };
+            if (entry.displayName !== void 0)
+              result.displayName = entry.displayName;
+            if (entry.uniqueId !== void 0)
+              result.uniqueId = entry.uniqueId;
+            return result;
           }
           case "variable":
             return {
@@ -25167,6 +25725,8 @@ function requireBrainJsonCodec() {
           result.ruleId = rule2.ruleId;
         if (rule2.comment !== void 0)
           result.comment = rule2.comment;
+        if (rule2.trigger !== void 0)
+          result.trigger = rule2.trigger;
         return result;
       }
     }
@@ -25471,6 +26031,170 @@ function requireBrainJsonRename() {
   return brainJsonRename;
 }
 var commands = {};
+var AttributeCommands = {};
+var hasRequiredAttributeCommands;
+function requireAttributeCommands() {
+  if (hasRequiredAttributeCommands) return AttributeCommands;
+  hasRequiredAttributeCommands = 1;
+  Object.defineProperty(AttributeCommands, "__esModule", { value: true });
+  AttributeCommands.SetRuleTriggerCommand = AttributeCommands.SetRuleCommentCommand = AttributeCommands.EditLiteralCommand = AttributeCommands.RenameVariableCommand = AttributeCommands.RenamePageCommand = AttributeCommands.RenameBrainCommand = void 0;
+  const variables_1 = /* @__PURE__ */ requireVariables();
+  function replaceTileInAllRules(brainDef, fromTile, toTile) {
+    const pages = brainDef.pages();
+    for (let pi = 0; pi < pages.size(); pi++) {
+      walkRules(pages.get(pi).children(), fromTile, toTile);
+    }
+  }
+  function walkRules(rules, fromTile, toTile) {
+    for (let ri = 0; ri < rules.size(); ri++) {
+      const rule2 = rules.get(ri);
+      replaceInTileSet(rule2.when(), fromTile, toTile);
+      replaceInTileSet(rule2.do(), fromTile, toTile);
+      walkRules(rule2.children(), fromTile, toTile);
+    }
+  }
+  function replaceInTileSet(tileSet, fromTile, toTile) {
+    const tiles2 = tileSet.tiles();
+    for (let ti = 0; ti < tiles2.size(); ti++) {
+      if (tiles2.get(ti) === fromTile) {
+        tileSet.replaceTileAtIndex(ti, toTile);
+      }
+    }
+  }
+  class RenameBrainCommand {
+    constructor(brainDef, newName) {
+      __publicField(this, "brainDef");
+      __publicField(this, "newName");
+      __publicField(this, "oldName");
+      this.brainDef = brainDef;
+      this.newName = newName;
+      this.oldName = brainDef.name();
+    }
+    execute() {
+      this.brainDef.setName(this.newName);
+    }
+    undo() {
+      this.brainDef.setName(this.oldName);
+    }
+    getDescription() {
+      return `Rename brain from "${this.oldName}" to "${this.newName}"`;
+    }
+  }
+  AttributeCommands.RenameBrainCommand = RenameBrainCommand;
+  class RenamePageCommand {
+    constructor(pageDef, newName) {
+      __publicField(this, "pageDef");
+      __publicField(this, "newName");
+      __publicField(this, "oldName");
+      this.pageDef = pageDef;
+      this.newName = newName;
+      this.oldName = pageDef.name();
+    }
+    execute() {
+      this.pageDef.setName(this.newName);
+    }
+    undo() {
+      this.pageDef.setName(this.oldName);
+    }
+    getDescription() {
+      return `Rename page from "${this.oldName}" to "${this.newName}"`;
+    }
+  }
+  AttributeCommands.RenamePageCommand = RenamePageCommand;
+  class RenameVariableCommand {
+    constructor(brainDef, oldTile, newName) {
+      __publicField(this, "brainDef");
+      __publicField(this, "oldTile");
+      __publicField(this, "newTile");
+      this.brainDef = brainDef;
+      this.oldTile = oldTile;
+      this.newTile = new variables_1.BrainTileVariableDef(oldTile.tileId, newName, oldTile.varType, oldTile.uniqueId);
+    }
+    execute() {
+      const catalog2 = this.brainDef.catalog();
+      catalog2.delete(this.oldTile.tileId);
+      catalog2.registerTileDef(this.newTile);
+      replaceTileInAllRules(this.brainDef, this.oldTile, this.newTile);
+    }
+    undo() {
+      const catalog2 = this.brainDef.catalog();
+      catalog2.delete(this.newTile.tileId);
+      catalog2.registerTileDef(this.oldTile);
+      replaceTileInAllRules(this.brainDef, this.newTile, this.oldTile);
+    }
+    getDescription() {
+      return `Rename variable from "${this.oldTile.varName}" to "${this.newTile.varName}"`;
+    }
+  }
+  AttributeCommands.RenameVariableCommand = RenameVariableCommand;
+  class EditLiteralCommand {
+    constructor(brainDef, oldTile, edit) {
+      __publicField(this, "brainDef");
+      __publicField(this, "oldTile");
+      __publicField(this, "newTile");
+      this.brainDef = brainDef;
+      this.oldTile = oldTile;
+      this.newTile = oldTile.edited(edit);
+    }
+    execute() {
+      this.swapTile_(this.oldTile, this.newTile);
+    }
+    undo() {
+      this.swapTile_(this.newTile, this.oldTile);
+    }
+    getDescription() {
+      return `Edit literal "${this.newTile.displayName ?? this.newTile.valueLabel}"`;
+    }
+    swapTile_(fromTile, toTile) {
+      const catalog2 = this.brainDef.catalog();
+      catalog2.delete(fromTile.tileId);
+      catalog2.registerTileDef(toTile);
+      replaceTileInAllRules(this.brainDef, fromTile, toTile);
+    }
+  }
+  AttributeCommands.EditLiteralCommand = EditLiteralCommand;
+  class SetRuleCommentCommand {
+    constructor(ruleDef, newComment) {
+      __publicField(this, "ruleDef");
+      __publicField(this, "newComment");
+      __publicField(this, "oldComment");
+      this.ruleDef = ruleDef;
+      this.newComment = newComment;
+      this.oldComment = ruleDef.comment();
+    }
+    execute() {
+      this.ruleDef.setComment(this.newComment);
+    }
+    undo() {
+      this.ruleDef.setComment(this.oldComment);
+    }
+    getDescription() {
+      return this.newComment ? `Set rule comment to "${this.newComment}"` : "Remove rule comment";
+    }
+  }
+  AttributeCommands.SetRuleCommentCommand = SetRuleCommentCommand;
+  class SetRuleTriggerCommand {
+    constructor(ruleDef, newTrigger) {
+      __publicField(this, "ruleDef");
+      __publicField(this, "newTrigger");
+      __publicField(this, "oldTrigger");
+      this.ruleDef = ruleDef;
+      this.newTrigger = newTrigger;
+      this.oldTrigger = ruleDef.trigger();
+    }
+    execute() {
+      this.ruleDef.setTrigger(this.newTrigger);
+    }
+    undo() {
+      this.ruleDef.setTrigger(this.oldTrigger);
+    }
+    getDescription() {
+      return `Set rule trigger to "${this.newTrigger}"`;
+    }
+  }
+  AttributeCommands.SetRuleTriggerCommand = SetRuleTriggerCommand;
+  return AttributeCommands;
+}
 var BrainCommand = {};
 var hasRequiredBrainCommand;
 function requireBrainCommand() {
@@ -25890,124 +26614,6 @@ function requirePageCommands() {
   }
   PageCommands.ReplaceLastPageCommand = ReplaceLastPageCommand;
   return PageCommands;
-}
-var RenameCommands = {};
-var hasRequiredRenameCommands;
-function requireRenameCommands() {
-  if (hasRequiredRenameCommands) return RenameCommands;
-  hasRequiredRenameCommands = 1;
-  Object.defineProperty(RenameCommands, "__esModule", { value: true });
-  RenameCommands.SetRuleCommentCommand = RenameCommands.RenameVariableCommand = RenameCommands.RenamePageCommand = RenameCommands.RenameBrainCommand = void 0;
-  const variables_1 = /* @__PURE__ */ requireVariables();
-  class RenameBrainCommand {
-    constructor(brainDef, newName) {
-      __publicField(this, "brainDef");
-      __publicField(this, "newName");
-      __publicField(this, "oldName");
-      this.brainDef = brainDef;
-      this.newName = newName;
-      this.oldName = brainDef.name();
-    }
-    execute() {
-      this.brainDef.setName(this.newName);
-    }
-    undo() {
-      this.brainDef.setName(this.oldName);
-    }
-    getDescription() {
-      return `Rename brain from "${this.oldName}" to "${this.newName}"`;
-    }
-  }
-  RenameCommands.RenameBrainCommand = RenameBrainCommand;
-  class RenamePageCommand {
-    constructor(pageDef, newName) {
-      __publicField(this, "pageDef");
-      __publicField(this, "newName");
-      __publicField(this, "oldName");
-      this.pageDef = pageDef;
-      this.newName = newName;
-      this.oldName = pageDef.name();
-    }
-    execute() {
-      this.pageDef.setName(this.newName);
-    }
-    undo() {
-      this.pageDef.setName(this.oldName);
-    }
-    getDescription() {
-      return `Rename page from "${this.oldName}" to "${this.newName}"`;
-    }
-  }
-  RenameCommands.RenamePageCommand = RenamePageCommand;
-  class RenameVariableCommand {
-    constructor(brainDef, oldTile, newName) {
-      __publicField(this, "brainDef");
-      __publicField(this, "oldTile");
-      __publicField(this, "newTile");
-      this.brainDef = brainDef;
-      this.oldTile = oldTile;
-      this.newTile = new variables_1.BrainTileVariableDef(oldTile.tileId, newName, oldTile.varType, oldTile.uniqueId);
-    }
-    execute() {
-      const catalog2 = this.brainDef.catalog();
-      catalog2.delete(this.oldTile.tileId);
-      catalog2.registerTileDef(this.newTile);
-      this.replaceTileInAllRules_(this.oldTile, this.newTile);
-    }
-    undo() {
-      const catalog2 = this.brainDef.catalog();
-      catalog2.delete(this.newTile.tileId);
-      catalog2.registerTileDef(this.oldTile);
-      this.replaceTileInAllRules_(this.newTile, this.oldTile);
-    }
-    getDescription() {
-      return `Rename variable from "${this.oldTile.varName}" to "${this.newTile.varName}"`;
-    }
-    replaceTileInAllRules_(fromTile, toTile) {
-      const pages = this.brainDef.pages();
-      for (let pi = 0; pi < pages.size(); pi++) {
-        this.walkRules_(pages.get(pi).children(), fromTile, toTile);
-      }
-    }
-    walkRules_(rules, fromTile, toTile) {
-      for (let ri = 0; ri < rules.size(); ri++) {
-        const rule2 = rules.get(ri);
-        this.replaceInTileSet_(rule2.when(), fromTile, toTile);
-        this.replaceInTileSet_(rule2.do(), fromTile, toTile);
-        this.walkRules_(rule2.children(), fromTile, toTile);
-      }
-    }
-    replaceInTileSet_(tileSet, fromTile, toTile) {
-      const tiles2 = tileSet.tiles();
-      for (let ti = 0; ti < tiles2.size(); ti++) {
-        if (tiles2.get(ti) === fromTile) {
-          tileSet.replaceTileAtIndex(ti, toTile);
-        }
-      }
-    }
-  }
-  RenameCommands.RenameVariableCommand = RenameVariableCommand;
-  class SetRuleCommentCommand {
-    constructor(ruleDef, newComment) {
-      __publicField(this, "ruleDef");
-      __publicField(this, "newComment");
-      __publicField(this, "oldComment");
-      this.ruleDef = ruleDef;
-      this.newComment = newComment;
-      this.oldComment = ruleDef.comment();
-    }
-    execute() {
-      this.ruleDef.setComment(this.newComment);
-    }
-    undo() {
-      this.ruleDef.setComment(this.oldComment);
-    }
-    getDescription() {
-      return this.newComment ? `Set rule comment to "${this.newComment}"` : "Remove rule comment";
-    }
-  }
-  RenameCommands.SetRuleCommentCommand = SetRuleCommentCommand;
-  return RenameCommands;
 }
 var RuleCommands = {};
 var hasRequiredRuleCommands;
@@ -26448,7 +27054,26 @@ function requireCommands() {
   hasRequiredCommands = 1;
   (function(exports$1) {
     Object.defineProperty(exports$1, "__esModule", { value: true });
-    exports$1.ReplaceTileCommand = exports$1.RemoveTileCommand = exports$1.PasteTileBeforeCommand = exports$1.InsertTileCommand = exports$1.AddTileCommand = exports$1.PasteRulesCommand = exports$1.OutdentRuleCommand = exports$1.MoveRuleUpCommand = exports$1.MoveRuleDownCommand = exports$1.MoveRuleCommand = exports$1.InsertRuleCommand = exports$1.IndentRuleCommand = exports$1.DeleteRuleCommand = exports$1.AddRuleCommand = exports$1.SetRuleCommentCommand = exports$1.RenameVariableCommand = exports$1.RenamePageCommand = exports$1.RenameBrainCommand = exports$1.ReplaceLastPageCommand = exports$1.RemovePageCommand = exports$1.AddPageCommand = exports$1.ReplaceBrainCommand = exports$1.BrainEditOrigin = exports$1.BrainCommandHistory = void 0;
+    exports$1.ReplaceTileCommand = exports$1.RemoveTileCommand = exports$1.PasteTileBeforeCommand = exports$1.InsertTileCommand = exports$1.AddTileCommand = exports$1.PasteRulesCommand = exports$1.OutdentRuleCommand = exports$1.MoveRuleUpCommand = exports$1.MoveRuleDownCommand = exports$1.MoveRuleCommand = exports$1.InsertRuleCommand = exports$1.IndentRuleCommand = exports$1.DeleteRuleCommand = exports$1.AddRuleCommand = exports$1.ReplaceLastPageCommand = exports$1.RemovePageCommand = exports$1.AddPageCommand = exports$1.ReplaceBrainCommand = exports$1.BrainEditOrigin = exports$1.BrainCommandHistory = exports$1.SetRuleTriggerCommand = exports$1.SetRuleCommentCommand = exports$1.RenameVariableCommand = exports$1.RenamePageCommand = exports$1.RenameBrainCommand = exports$1.EditLiteralCommand = void 0;
+    var AttributeCommands_1 = /* @__PURE__ */ requireAttributeCommands();
+    Object.defineProperty(exports$1, "EditLiteralCommand", { enumerable: true, get: function() {
+      return AttributeCommands_1.EditLiteralCommand;
+    } });
+    Object.defineProperty(exports$1, "RenameBrainCommand", { enumerable: true, get: function() {
+      return AttributeCommands_1.RenameBrainCommand;
+    } });
+    Object.defineProperty(exports$1, "RenamePageCommand", { enumerable: true, get: function() {
+      return AttributeCommands_1.RenamePageCommand;
+    } });
+    Object.defineProperty(exports$1, "RenameVariableCommand", { enumerable: true, get: function() {
+      return AttributeCommands_1.RenameVariableCommand;
+    } });
+    Object.defineProperty(exports$1, "SetRuleCommentCommand", { enumerable: true, get: function() {
+      return AttributeCommands_1.SetRuleCommentCommand;
+    } });
+    Object.defineProperty(exports$1, "SetRuleTriggerCommand", { enumerable: true, get: function() {
+      return AttributeCommands_1.SetRuleTriggerCommand;
+    } });
     var BrainCommand_1 = /* @__PURE__ */ requireBrainCommand();
     Object.defineProperty(exports$1, "BrainCommandHistory", { enumerable: true, get: function() {
       return BrainCommand_1.BrainCommandHistory;
@@ -26469,19 +27094,6 @@ function requireCommands() {
     } });
     Object.defineProperty(exports$1, "ReplaceLastPageCommand", { enumerable: true, get: function() {
       return PageCommands_1.ReplaceLastPageCommand;
-    } });
-    var RenameCommands_1 = /* @__PURE__ */ requireRenameCommands();
-    Object.defineProperty(exports$1, "RenameBrainCommand", { enumerable: true, get: function() {
-      return RenameCommands_1.RenameBrainCommand;
-    } });
-    Object.defineProperty(exports$1, "RenamePageCommand", { enumerable: true, get: function() {
-      return RenameCommands_1.RenamePageCommand;
-    } });
-    Object.defineProperty(exports$1, "RenameVariableCommand", { enumerable: true, get: function() {
-      return RenameCommands_1.RenameVariableCommand;
-    } });
-    Object.defineProperty(exports$1, "SetRuleCommentCommand", { enumerable: true, get: function() {
-      return RenameCommands_1.SetRuleCommentCommand;
     } });
     var RuleCommands_1 = /* @__PURE__ */ requireRuleCommands();
     Object.defineProperty(exports$1, "AddRuleCommand", { enumerable: true, get: function() {
@@ -26558,6 +27170,7 @@ function requireModel() {
     __exportStar(/* @__PURE__ */ requireBrainJsonRename(), exports$1);
     __exportStar(/* @__PURE__ */ requireBraindef(), exports$1);
     __exportStar(/* @__PURE__ */ requireCommands(), exports$1);
+    __exportStar(/* @__PURE__ */ requireDocumentId(), exports$1);
     __exportStar(/* @__PURE__ */ requirePagedef(), exports$1);
     __exportStar(/* @__PURE__ */ requireRuledef(), exports$1);
     __exportStar(/* @__PURE__ */ requireTileset(), exports$1);
@@ -26581,7 +27194,7 @@ function requireServices() {
       __publicField(this, "shared");
       /**
        * Host-supplied capabilities shared across every brain in the process.
-       * The same reference is exposed by {@link MindcraftEnvironment.appServices}.
+       * The same reference is exposed by {@link WendooEnvironment.appServices}.
        */
       __publicField(this, "app");
       this.runtime = config.runtime;
@@ -26954,22 +27567,19 @@ function requireManufacture() {
   manufacture.manufactureLiteralTile = manufactureLiteralTile;
   manufacture.manufactureVariableTile = manufactureVariableTile;
   const string_1 = /* @__PURE__ */ requireString();
-  function manufactureLiteralTile(factoryTileDef, catalog2, value2, displayFormat2) {
-    const newTileDef = factoryTileDef.manufacture(factoryTileDef, { value: value2, displayFormat: displayFormat2 });
+  function manufactureLiteralTile(factoryTileDef, catalog2, value2, displayFormat2, displayName) {
+    const trimmedName = displayName === void 0 ? "" : string_1.StringUtils.trim(displayName);
+    const name = trimmedName === "" ? void 0 : trimmedName;
+    const newTileDef = factoryTileDef.manufacture(factoryTileDef, { value: value2, displayFormat: displayFormat2, displayName: name });
     if (!newTileDef)
       return void 0;
-    if (!catalog2)
-      return newTileDef;
-    const existingDef = catalog2.find((td) => {
-      if (td.kind !== "literal")
-        return false;
-      const litTileDef = td;
-      return litTileDef.value === value2 && litTileDef.valueType === newTileDef.valueType && litTileDef.displayFormat === newTileDef.displayFormat;
-    });
-    if (existingDef)
-      return existingDef;
-    catalog2.registerTileDef(newTileDef);
-    return newTileDef;
+    const existingDef = catalog2 ? catalog2.get(newTileDef.tileId) : void 0;
+    const tileDef = existingDef ?? newTileDef;
+    if (name !== void 0 && tileDef.displayName !== name)
+      tileDef.setDisplayName(name);
+    if (catalog2 && !existingDef)
+      catalog2.registerTileDef(tileDef);
+    return tileDef;
   }
   function manufactureVariableTile(factoryTileDef, catalog2, varName) {
     const name = string_1.StringUtils.trim(varName);
@@ -27132,7 +27742,6 @@ function requireSensors() {
   const runtime_1 = /* @__PURE__ */ requireRuntime();
   const current_page_1 = __importDefault(/* @__PURE__ */ requireCurrentPage());
   const on_page_entered_1 = __importDefault(/* @__PURE__ */ requireOnPageEntered());
-  const otherwise_1 = __importDefault(/* @__PURE__ */ requireOtherwise());
   const previous_page_1 = __importDefault(/* @__PURE__ */ requirePreviousPage());
   const random_1 = __importDefault(/* @__PURE__ */ requireRandom());
   const timeout_1 = __importDefault(/* @__PURE__ */ requireTimeout());
@@ -27203,11 +27812,6 @@ function requireSensors() {
       placement: interfaces_1.TilePlacement.EitherSide | interfaces_1.TilePlacement.Inline,
       capabilities: pageSensorCaps,
       metadata: { label: "previous page", language: { form: "the previous page" } }
-    });
-    register(otherwise_1.default.key, otherwise_1.default.descriptor, {
-      placement: interfaces_1.TilePlacement.WhenSide | interfaces_1.TilePlacement.Inline,
-      capabilities: new bitset_1.BitSet().set(interfaces_1.CoreCapabilityBits.RequiresPrecedingSiblingRule),
-      metadata: { label: "otherwise", language: { form: "otherwise", frame: "adverb" } }
     });
   }
   return sensors;
@@ -27356,17 +27960,17 @@ function requireBrain() {
   })(brain$1);
   return brain$1;
 }
-var hasRequiredMindcraft;
-function requireMindcraft() {
-  if (hasRequiredMindcraft) return mindcraft;
-  hasRequiredMindcraft = 1;
-  Object.defineProperty(mindcraft, "__esModule", { value: true });
-  mindcraft.createHostSensor = createHostSensor;
-  mindcraft.createHostActuator = createHostActuator;
-  mindcraft.createMindcraftEnvironment = createMindcraftEnvironment;
-  mindcraft.coreModule = coreModule;
-  mindcraft.getMindcraftEnvironmentServices = getMindcraftEnvironmentServices;
-  mindcraft.withMindcraftEnvironmentServices = withMindcraftEnvironmentServices;
+var hasRequiredWendoo;
+function requireWendoo() {
+  if (hasRequiredWendoo) return wendoo;
+  hasRequiredWendoo = 1;
+  Object.defineProperty(wendoo, "__esModule", { value: true });
+  wendoo.createHostSensor = createHostSensor;
+  wendoo.createHostActuator = createHostActuator;
+  wendoo.createWendooEnvironment = createWendooEnvironment;
+  wendoo.coreModule = coreModule;
+  wendoo.getWendooEnvironmentServices = getWendooEnvironmentServices;
+  wendoo.withWendooEnvironmentServices = withWendooEnvironmentServices;
   const brain_1 = /* @__PURE__ */ requireBrain();
   const compiler_1 = /* @__PURE__ */ requireCompiler();
   const interfaces_1 = /* @__PURE__ */ requireInterfaces();
@@ -27483,7 +28087,7 @@ function requireMindcraft() {
       throw new error_1.Error(`Structural type '${definition.name}' must not declare an atomId (got ${definition.atomId})`);
     }
   }
-  function registerMindcraftTypeDefinition(services2, definition) {
+  function registerWendooTypeDefinition(services2, definition) {
     const nullableDef = definition;
     if (definition.nullable && nullableDef.baseTypeId !== void 0) {
       rejectStructuralAtomId(definition);
@@ -27571,7 +28175,7 @@ function requireMindcraft() {
         return assertRegisteredTypeId(services2.runtime.types.getOrCreateUnionType(unionDef.memberTypeIds), unionDef.typeId, unionDef.name);
       }
       default:
-        throw new error_1.Error(`Unsupported mindcraft type '${definition.name}' (coreType: ${definition.coreType})`);
+        throw new error_1.Error(`Unsupported wendoo type '${definition.name}' (coreType: ${definition.coreType})`);
     }
     return registeredTypeId;
   }
@@ -27644,7 +28248,7 @@ function requireMindcraft() {
     }
     return set;
   }
-  class MindcraftCatalogImpl {
+  class WendooCatalogImpl {
     constructor(catalog2 = new catalog_1.TileCatalog()) {
       __publicField(this, "catalog");
       this.catalog = catalog2;
@@ -27670,7 +28274,7 @@ function requireMindcraft() {
     }
   }
   function unwrapCatalog(catalog2) {
-    if (catalog2 instanceof MindcraftCatalogImpl) {
+    if (catalog2 instanceof WendooCatalogImpl) {
       return catalog2.rawCatalog();
     }
     const clone = new catalog_1.TileCatalog();
@@ -27686,7 +28290,7 @@ function requireMindcraft() {
       this.brainServices = services2;
     }
     defineType(def) {
-      return registerMindcraftTypeDefinition(this.brainServices, def);
+      return registerWendooTypeDefinition(this.brainServices, def);
     }
     registerHostSensor(def) {
       if (def.descriptor.kind !== "sensor" || def.tile.kind !== "sensor") {
@@ -27742,7 +28346,7 @@ function requireMindcraft() {
       return this.environment.resolveAction(descriptor);
     }
   }
-  class MindcraftEnvironmentImpl {
+  class WendooEnvironmentImpl {
     constructor(modules, rng2, numerics, localizer2) {
       __publicField(this, "brainServices");
       __publicField(this, "appServices");
@@ -27750,6 +28354,8 @@ function requireMindcraft() {
       __publicField(this, "bundleResolver", new dict_1.Dict());
       /** Revision of the bundle last applied, or undefined while none has been. */
       __publicField(this, "bundleRevision");
+      /** Compilation roots of the bundle last applied; empty while none has been. */
+      __publicField(this, "bundleRoots", []);
       /** `(fromType, toType)` pairs this environment registered from the active bundle's conversion artifacts. */
       __publicField(this, "bundleConversionPairs", new list_1.List());
       __publicField(this, "trackedBrains", list_1.List.empty());
@@ -27763,13 +28369,13 @@ function requireMindcraft() {
       this.installModules(modules);
     }
     withServices(callback) {
-      return withMindcraftEnvironmentServices(this, callback);
+      return withWendooEnvironmentServices(this, callback);
     }
     tileCatalogs() {
       return [this.brainServices.edit.tiles, this.bundleCatalog];
     }
     createCatalog() {
-      return new MindcraftCatalogImpl();
+      return new WendooCatalogImpl();
     }
     deserializeBrainJson(json) {
       return model_1.BrainDef.fromJson(json, this.brainServices, this.buildDeserializeCatalogs());
@@ -27785,7 +28391,7 @@ function requireMindcraft() {
     }
     createBrain(definition, options) {
       const overlayCatalogs = this.resolveOverlayCatalogs(options == null ? void 0 : options.catalogs);
-      const brain2 = new ManagedMindcraftBrain(this, definition, overlayCatalogs);
+      const brain2 = new ManagedWendooBrain(this, definition, overlayCatalogs);
       this.trackBrain(brain2);
       try {
         brain2.initialize(options == null ? void 0 : options.context, options == null ? void 0 : options.vmEvents);
@@ -27803,12 +28409,18 @@ function requireMindcraft() {
       return { program: result.program, diagnostics: result.diagnostics };
     }
     replaceActionBundle(bundle) {
+      for (const tile of bundle.tiles) {
+        if (!tile.provenance) {
+          throw new error_1.Error(`replaceActionBundle: bundle tile "${tile.tileId}" carries no provenance`);
+        }
+      }
       const nextActions = copyActionArtifacts(bundle.actions);
       const changedActionKeys = collectChangedActionKeys(this.bundleResolver, nextActions);
       const changedActionKeySet = toActionKeySet(changedActionKeys);
       const hasChangedActions = !changedActionKeySet.isEmpty();
       this.replaceCatalogContents(this.bundleCatalog, list_1.List.from(bundle.tiles));
       this.bundleRevision = bundle.revision;
+      this.bundleRoots = bundle.roots;
       this.bundleResolver.clear();
       const nextKeys = nextActions.keys();
       for (let i = 0; i < nextKeys.size(); i++) {
@@ -27846,7 +28458,8 @@ function requireMindcraft() {
       return {
         revision: this.bundleRevision,
         tiles: this.bundleCatalog.getAll().toArray(),
-        actions: copyActionArtifacts(this.bundleResolver)
+        actions: copyActionArtifacts(this.bundleResolver),
+        roots: this.bundleRoots
       };
     }
     onBrainsInvalidated(listener) {
@@ -27862,7 +28475,7 @@ function requireMindcraft() {
       const targets = brains ? list_1.List.from(brains) : list_1.List.from(this.invalidatedBrains.toArray());
       for (let i = 0; i < targets.size(); i++) {
         const candidate = targets.get(i);
-        if (!(candidate instanceof ManagedMindcraftBrain)) {
+        if (!(candidate instanceof ManagedWendooBrain)) {
           continue;
         }
         if (candidate.owner() !== this || candidate.isDisposed()) {
@@ -27956,7 +28569,7 @@ function requireMindcraft() {
       for (let i = 0; i < moduleList.size(); i++) {
         const module = moduleList.get(i);
         if (seen.has(module.id)) {
-          throw new error_1.Error(`Mindcraft module '${module.id}' is already installed`);
+          throw new error_1.Error(`Wendoo module '${module.id}' is already installed`);
         }
         seen.set(module.id, true);
         const api = new EnvironmentModuleApi(this.brainServices);
@@ -28027,7 +28640,7 @@ function requireMindcraft() {
       this.trackedBrains.push(brain2);
     }
   }
-  class ManagedMindcraftBrain extends brain_1.Brain {
+  class ManagedWendooBrain extends brain_1.Brain {
     constructor(environment, definition, overlayCatalogs) {
       const linkEnvironment = environment.buildLinkEnvironment(definition, overlayCatalogs);
       super(definition, environment.brainServices, linkEnvironment);
@@ -28165,27 +28778,27 @@ function requireMindcraft() {
       }
     }
   }
-  function createMindcraftEnvironment(options = {}) {
-    return new MindcraftEnvironmentImpl(options.modules ?? [], options.rng, options.numerics, options.localizer);
+  function createWendooEnvironment(options = {}) {
+    return new WendooEnvironmentImpl(options.modules ?? [], options.rng, options.numerics, options.localizer);
   }
   function coreModule() {
     return {
-      id: "mindcraft.core",
+      id: "wendoo.core",
       install(api) {
         (0, brain_1.installCoreBrainComponents)(api.brainServices);
       }
     };
   }
-  function getMindcraftEnvironmentServices(environment) {
-    if (!(environment instanceof MindcraftEnvironmentImpl)) {
-      throw new error_1.Error("Unsupported MindcraftEnvironment implementation");
+  function getWendooEnvironmentServices(environment) {
+    if (!(environment instanceof WendooEnvironmentImpl)) {
+      throw new error_1.Error("Unsupported WendooEnvironment implementation");
     }
     return environment.brainServices;
   }
-  function withMindcraftEnvironmentServices(environment, callback) {
+  function withWendooEnvironmentServices(environment, callback) {
     return callback(environment.brainServices);
   }
-  return mindcraft;
+  return wendoo;
 }
 var vector2 = {};
 var hasRequiredVector2;
@@ -28306,21 +28919,21 @@ function requireApp() {
   hasRequiredApp = 1;
   (function(exports$1) {
     Object.defineProperty(exports$1, "__esModule", { value: true });
-    exports$1.CoreTypeIds = exports$1.CoreOpId = exports$1.CoreVariableFactoryId = exports$1.CoreParameterId = exports$1.CoreLiteralFactoryId = exports$1.CoreControlFlowId = exports$1.mkVariableFactoryTileId = exports$1.mkSensorTileId = exports$1.mkParameterTileId = exports$1.mkPageTileId = exports$1.mkOutputVarKey = exports$1.mkOutputTileId = exports$1.mkOperatorTileId = exports$1.mkModifierTileId = exports$1.mkLiteralTileId = exports$1.mkLiteralFactoryTileId = exports$1.mkControlFlowTileId = exports$1.mkActuatorTileId = exports$1.mkActionTileId = exports$1.mkAccessorTileId = exports$1.getCatalogFallbackLabel = exports$1.createVariableFactoryTileDef = exports$1.createAccessorTileDef = exports$1.buildDescriptorOutputTiles = exports$1.BrainTileVariableDef = exports$1.BrainTileSensorDef = exports$1.BrainTileParameterDef = exports$1.BrainTileOutputDef = exports$1.BrainTileModifierDef = exports$1.BrainTileLiteralDef = exports$1.BrainTileActuatorDef = exports$1.BrainTileAccessorDef = exports$1.repeated = exports$1.param = exports$1.optional = exports$1.mod = exports$1.mkCallDef = exports$1.conditional = exports$1.choice = exports$1.bag = exports$1.renameBrainNamespaces = exports$1.encodePersistedBrainJson = exports$1.deserializePersistedBrainJson = exports$1.decodePersistedBrainJson = exports$1.brainJsonFromPlain = exports$1.BrainDef = exports$1.createMindcraftEnvironment = exports$1.createHostSensor = exports$1.createHostActuator = exports$1.coreModule = void 0;
+    exports$1.CoreTypeIds = exports$1.CoreOpId = exports$1.CoreVariableFactoryId = exports$1.CoreParameterId = exports$1.CoreLiteralFactoryId = exports$1.CoreControlFlowId = exports$1.mkVariableFactoryTileId = exports$1.mkSensorTileId = exports$1.mkParameterTileId = exports$1.mkPageTileId = exports$1.mkOutputVarKey = exports$1.mkOutputTileId = exports$1.mkOperatorTileId = exports$1.mkModifierTileId = exports$1.mkLiteralTileId = exports$1.mkLiteralFactoryTileId = exports$1.mkControlFlowTileId = exports$1.mkActuatorTileId = exports$1.mkActionTileId = exports$1.mkAccessorTileId = exports$1.getCatalogFallbackLabel = exports$1.createVariableFactoryTileDef = exports$1.createAccessorTileDef = exports$1.buildDescriptorOutputTiles = exports$1.BrainTileVariableDef = exports$1.BrainTileSensorDef = exports$1.BrainTileParameterDef = exports$1.BrainTileOutputDef = exports$1.BrainTileModifierDef = exports$1.BrainTileLiteralDef = exports$1.BrainTileActuatorDef = exports$1.BrainTileAccessorDef = exports$1.repeated = exports$1.param = exports$1.optional = exports$1.mod = exports$1.mkCallDef = exports$1.conditional = exports$1.choice = exports$1.bag = exports$1.renameBrainNamespaces = exports$1.encodePersistedBrainJson = exports$1.deserializePersistedBrainJson = exports$1.decodePersistedBrainJson = exports$1.brainJsonFromPlain = exports$1.BrainDef = exports$1.createWendooEnvironment = exports$1.createHostSensor = exports$1.createHostActuator = exports$1.coreModule = void 0;
     exports$1.TRUE_VALUE = exports$1.NIL_VALUE = exports$1.mkStringValue = exports$1.mkNumberValue = exports$1.mkNativeStructValue = exports$1.mkListValue = exports$1.mkFunctionValue = exports$1.mkClosedStructValueByName = exports$1.mkClosedStructValue = exports$1.mkBooleanValue = exports$1.isVoidValue = exports$1.isUnknownValue = exports$1.isStructValue = exports$1.isStringValue = exports$1.isNumberValue = exports$1.isNilValue = exports$1.isMapValue = exports$1.isListValue = exports$1.isHandleValue = exports$1.isFunctionValue = exports$1.isEnumValue = exports$1.isBooleanValue = exports$1.getClosedStructFieldByName = exports$1.FALSE_VALUE = exports$1.extractStringValue = exports$1.extractNumberValue = exports$1.extractListValue = exports$1.setSensorOutput = exports$1.setRuleVariable = exports$1.setCallSiteState = exports$1.getWhenResult = exports$1.getRuleVariable = exports$1.getCallSiteState = exports$1.clearCallSiteState = exports$1.formatF32 = exports$1.getSlotId = exports$1.TilePlacement = exports$1.CoreCapabilityBits = exports$1.APP_CAPABILITY_BIT_OFFSET = exports$1.Rng = exports$1.createEntropySeededRng = exports$1.MathOps = exports$1.NativeType = exports$1.mkTypeId = exports$1.ContextTypeNames = exports$1.ContextTypeIds = exports$1.TARGET_FUNC_ID_BASE = exports$1.TARGET_ACTION_ID_BASE = exports$1.CoreHostActions = exports$1.CoreFuncId = void 0;
     exports$1.BitSet = exports$1.Vector2 = exports$1.TypeUtils = exports$1.logger = exports$1.LogLevel = exports$1.List = exports$1.Dict = exports$1.VOID_VALUE = void 0;
-    var mindcraft_1 = /* @__PURE__ */ requireMindcraft();
+    var wendoo_1 = /* @__PURE__ */ requireWendoo();
     Object.defineProperty(exports$1, "coreModule", { enumerable: true, get: function() {
-      return mindcraft_1.coreModule;
+      return wendoo_1.coreModule;
     } });
     Object.defineProperty(exports$1, "createHostActuator", { enumerable: true, get: function() {
-      return mindcraft_1.createHostActuator;
+      return wendoo_1.createHostActuator;
     } });
     Object.defineProperty(exports$1, "createHostSensor", { enumerable: true, get: function() {
-      return mindcraft_1.createHostSensor;
+      return wendoo_1.createHostSensor;
     } });
-    Object.defineProperty(exports$1, "createMindcraftEnvironment", { enumerable: true, get: function() {
-      return mindcraft_1.createMindcraftEnvironment;
+    Object.defineProperty(exports$1, "createWendooEnvironment", { enumerable: true, get: function() {
+      return wendoo_1.createWendooEnvironment;
     } });
     var model_1 = /* @__PURE__ */ requireModel();
     Object.defineProperty(exports$1, "BrainDef", { enumerable: true, get: function() {
@@ -28666,7 +29279,7 @@ function createSeededRng(seed) {
   return () => rng2.next();
 }
 function createRehearsalEnvironment(options) {
-  return appExports.createMindcraftEnvironment({
+  return appExports.createWendooEnvironment({
     modules: [appExports.coreModule(), ...options.modules],
     rng: { next: options.rng },
     numerics: runtimeExports.createProfileNumerics(options.precision ?? "f64")
@@ -28792,7 +29405,7 @@ function bakedContainer(tile) {
   const value2 = baked;
   return value2.t === appExports.NativeType.Struct || value2.t === appExports.NativeType.List ? value2 : void 0;
 }
-function createValueLabeler(catalogsOf, numberText) {
+function createValueLabeler(catalogsOf, numberText, localizer2) {
   let byContents;
   let byHostObject;
   return (value2) => {
@@ -28811,13 +29424,13 @@ function createValueLabeler(catalogsOf, numberText) {
             continue;
           if (baked.t === appExports.NativeType.Struct && baked.native !== void 0) {
             if (!byHostObject.has(baked.native))
-              byHostObject.set(baked.native, literal.valueLabel);
+              byHostObject.set(baked.native, languageServiceExports.tileSentenceWord(literal, localizer2));
             continue;
           }
           const contents2 = render(baked, numberText, namesNothing);
           if (contents2.opaque || byContents.has(contents2.text))
             continue;
-          byContents.set(contents2.text, literal.valueLabel);
+          byContents.set(contents2.text, languageServiceExports.tileSentenceWord(literal, localizer2));
         }
       }
     }
@@ -28848,7 +29461,7 @@ function isUnfilled(value2) {
 function renderArgs(slots, args, nameOf, numberText, labelOf) {
   const rendered = [];
   for (let i = 0; i < slots.size(); i++) {
-    const value2 = args.get(i);
+    const value2 = args.at(i);
     if (value2 === void 0 || isUnfilled(value2))
       continue;
     const argSpec = slots.get(i).argSpec;
@@ -29194,12 +29807,13 @@ async function rehearse(options, runId, request) {
     environment.replaceActionBundle(request.actionBundle);
   }
   const numberText = (value2) => environment.appServices.numerics.formatNumber(value2);
-  const recorder = new SubjectRecorder(createTileNamer(() => environment.tileCatalogs(), environment.appServices.localizer), numberText, createValueLabeler(() => environment.tileCatalogs(), numberText));
   const subjectBrain = environment.deserializeBrainJson(modelExports.brainJsonWithRulesEmptied(request.brainDef.toJson(), request.excludedRules ?? []));
   const unresolved = unresolvedTileIds(subjectBrain);
   if (unresolved.length > 0) {
     throw new RehearsalRejection(RehearsalRejectionCode.TilesUnresolved, [], unresolved);
   }
+  const localizer2 = environment.appServices.localizer;
+  const recorder = new SubjectRecorder(createTileNamer(() => environment.tileCatalogs(), localizer2), numberText, createValueLabeler(() => [...environment.tileCatalogs(), subjectBrain.catalog()], numberText, localizer2));
   recorder.bindRuleIds(ruleFuncIdRuleIds(environment, subjectBrain));
   const world = await driver.stage({
     environment,
@@ -29806,7 +30420,7 @@ function registerTypes(api) {
     {
       exec: (ctx, args) => {
         const self2 = extractVector2(ctx, args.get(0));
-        const scalar = appExports.extractNumberValue(args.get(1));
+        const scalar = appExports.extractNumberValue(args.at(1));
         if (!self2 || scalar === void 0) return appExports.VOID_VALUE;
         return mkVector2Value(ctx, self2.mul(scalar));
       }
@@ -29820,7 +30434,7 @@ function registerTypes(api) {
     {
       exec: (ctx, args) => {
         const self2 = extractVector2(ctx, args.get(0));
-        const scalar = appExports.extractNumberValue(args.get(1));
+        const scalar = appExports.extractNumberValue(args.at(1));
         if (!self2 || scalar === void 0) return appExports.VOID_VALUE;
         return mkVector2Value(ctx, self2.div(scalar));
       }
@@ -29903,7 +30517,7 @@ function registerTypes(api) {
       exec: (ctx, args) => {
         const self2 = extractVector2(ctx, args.get(0));
         const goal = extractVector2(ctx, args.get(1));
-        const alpha = appExports.extractNumberValue(args.get(2));
+        const alpha = appExports.extractNumberValue(args.at(2));
         if (!self2 || !goal || alpha === void 0) return appExports.VOID_VALUE;
         return mkVector2Value(ctx, self2.Lerp(goal, alpha));
       }
@@ -29931,7 +30545,7 @@ function registerTypes(api) {
     {
       exec: (ctx, args) => {
         const self2 = extractVector2(ctx, args.get(0));
-        const angle = appExports.extractNumberValue(args.get(1));
+        const angle = appExports.extractNumberValue(args.at(1));
         if (!self2 || angle === void 0) return appExports.VOID_VALUE;
         return mkVector2Value(ctx, self2.rotate(angle));
       }
@@ -29949,13 +30563,15 @@ function registerTypes(api) {
     }
   );
 }
+const DEFAULT_STEERING_PRIORITY = 0.5;
+const SAY_DEFAULT_DURATION_SECONDS = 5;
 function hasArg(args, slotId) {
-  const value2 = args.get(slotId);
+  const value2 = args.at(slotId);
   return value2 !== void 0 && !appExports.isNilValue(value2);
 }
 function resolveTargetPosition(ctx, args, actorRefSlotId) {
   if (actorRefSlotId !== void 0) {
-    const targetActorValue = args.get(actorRefSlotId);
+    const targetActorValue = args.at(actorRefSlotId);
     if (targetActorValue && !appExports.isNilValue(targetActorValue)) {
       const targetActor = resolveActor(targetActorValue, ctx);
       if (targetActor) {
@@ -29975,7 +30591,7 @@ function resolveTargetPosition(ctx, args, actorRefSlotId) {
 }
 function resolveTargetActor(ctx, args, actorRefSlotId) {
   if (actorRefSlotId !== void 0) {
-    const targetActorValue = args.get(actorRefSlotId);
+    const targetActorValue = args.at(actorRefSlotId);
     if (targetActorValue !== void 0 && !appExports.isNilValue(targetActorValue)) {
       return resolveActor(targetActorValue, ctx);
     }
@@ -30111,7 +30727,9 @@ const modifiers$3 = [
   }
 ];
 const AnonActorRef$3 = appExports.param(TileIds.Parameter.AnonymousActorRef, {
-  anonymous: true
+  anonymous: true,
+  name: "target",
+  derived: true
 });
 const callDef$5 = appExports.mkCallDef(appExports.bag(appExports.optional(AnonActorRef$3)));
 const kAnonActorRefSlotId$3 = appExports.getSlotId(callDef$5, AnonActorRef$3);
@@ -30497,9 +31115,13 @@ const Avoid = appExports.mod(TileIds.Modifier.MovementAvoid);
 const Wander = appExports.mod(TileIds.Modifier.MovementWander);
 const Quickly$1 = appExports.mod(TileIds.Modifier.Quickly);
 const Slowly$1 = appExports.mod(TileIds.Modifier.Slowly);
-const Priority$1 = appExports.param(TileIds.Parameter.Priority);
+const Priority$1 = appExports.param(TileIds.Parameter.Priority, {
+  default: appExports.mkNumberValue(DEFAULT_STEERING_PRIORITY)
+});
 const AnonActorRef$2 = appExports.param(TileIds.Parameter.AnonymousActorRef, {
-  anonymous: true
+  anonymous: true,
+  name: "target",
+  derived: true
 });
 const TargetedModifier$1 = {
   type: "choice",
@@ -30535,14 +31157,14 @@ const kAnonActorRefSlotId$2 = appExports.getSlotId(callDef$4, AnonActorRef$2);
 const kQuicklyMultiplier$1 = 0.5;
 const kSlowlyMultiplier$1 = 1;
 function getSpeedMultiplier$1(args) {
-  const quicklyCount = appExports.extractNumberValue(args.get(kQuicklySlotId$1)) ?? 0;
-  const slowlyCount = appExports.extractNumberValue(args.get(kSlowlySlotId$1)) ?? 0;
+  const quicklyCount = appExports.extractNumberValue(args.at(kQuicklySlotId$1)) ?? 0;
+  const slowlyCount = appExports.extractNumberValue(args.at(kSlowlySlotId$1)) ?? 0;
   if (quicklyCount > 0) return 1 + quicklyCount * kQuicklyMultiplier$1;
   if (slowlyCount > 0) return 1 / (1 + slowlyCount * kSlowlyMultiplier$1);
   return 1;
 }
 function getWeight$1(args) {
-  return appExports.extractNumberValue(args.get(kPrioritySlotId$1)) ?? 0.5;
+  return appExports.extractNumberValue(args.at(kPrioritySlotId$1)) ?? DEFAULT_STEERING_PRIORITY;
 }
 function resolveAwayFromTarget(ctx, args) {
   if (hasArg(args, kAnonActorRefSlotId$2)) {
@@ -30674,9 +31296,13 @@ const parameters$3 = [
   }
 ];
 const AnonString = appExports.param(appExports.CoreParameterId.AnonymousString, {
-  anonymous: true
+  anonymous: true,
+  name: "text"
 });
-const Duration = appExports.param(TileIds.Parameter.Duration);
+const Duration = appExports.param(TileIds.Parameter.Duration, {
+  unit: "seconds",
+  default: appExports.mkNumberValue(SAY_DEFAULT_DURATION_SECONDS)
+});
 const callDef$3 = appExports.mkCallDef(appExports.bag(appExports.optional(AnonString), appExports.optional(Duration)));
 const kAnonymousStringSlotId = appExports.getSlotId(callDef$3, AnonString);
 const kDurationSlotId = appExports.getSlotId(callDef$3, Duration);
@@ -30690,10 +31316,10 @@ function execSay(ctx, args) {
     let text;
     const hasStringArg = hasArg(args, kAnonymousStringSlotId);
     if (hasStringArg) {
-      const stringValue = args.get(kAnonymousStringSlotId);
+      const stringValue = args.at(kAnonymousStringSlotId);
       text = appExports.extractStringValue(stringValue);
     }
-    const durationSecs = appExports.extractNumberValue(args.get(kDurationSlotId));
+    const durationSecs = appExports.extractNumberValue(args.at(kDurationSlotId));
     self2.displayString(text, durationSecs);
   } catch (error2) {
     appExports.logger.error("Error executing Say actuator:", error2);
@@ -30749,8 +31375,8 @@ function execSee(ctx, args) {
     const bHasPlantFilter = hasArg(args, kActorKindPlantSlotId);
     let nearbyThresholdSq = kNearbyDistanceThresholdSq;
     let farAwayThresholdSq = kFarAwayDistanceThresholdSq;
-    const nearbyCount = appExports.extractNumberValue(args.get(kDistanceNearbySlotId)) ?? 0;
-    const farAwayCount = appExports.extractNumberValue(args.get(kDistanceFarAwaySlotId)) ?? 0;
+    const nearbyCount = appExports.extractNumberValue(args.at(kDistanceNearbySlotId)) ?? 0;
+    const farAwayCount = appExports.extractNumberValue(args.at(kDistanceFarAwaySlotId)) ?? 0;
     if (nearbyCount > 0) {
       nearbyThresholdSq = kNearbyDistanceThresholdSq / nearbyCount;
     }
@@ -30860,16 +31486,22 @@ const modifiers$1 = [
   { id: TileIds.Modifier.DistanceNearby, label: "nearby", iconUrl: `${ICON_BASE}/nearby.svg` },
   { id: TileIds.Modifier.DistanceFarAway, label: "far away", iconUrl: `${ICON_BASE}/faraway.svg` }
 ];
-const AnonActorRef$1 = appExports.param(TileIds.Parameter.AnonymousActorRef, {
-  anonymous: true
-});
-const Rate = appExports.param(TileIds.Parameter.Rate);
-const callDef$1 = appExports.mkCallDef(appExports.bag(appExports.optional(AnonActorRef$1), appExports.optional(Rate)));
-const kAnonActorRefSlotId$1 = appExports.getSlotId(callDef$1, AnonActorRef$1);
-const kRateSlotId = appExports.getSlotId(callDef$1, Rate);
 const DEFAULT_SHOOT_RATE = 2;
 const MAX_SHOOT_RATE = 5;
 const MIN_SHOOT_RATE = 0;
+const AnonActorRef$1 = appExports.param(TileIds.Parameter.AnonymousActorRef, {
+  anonymous: true,
+  name: "target",
+  derived: true
+});
+const Rate = appExports.param(TileIds.Parameter.Rate, {
+  unit: "per-second",
+  default: appExports.mkNumberValue(DEFAULT_SHOOT_RATE),
+  range: { min: MIN_SHOOT_RATE, max: MAX_SHOOT_RATE, onExceed: "clamp" }
+});
+const callDef$1 = appExports.mkCallDef(appExports.bag(appExports.optional(AnonActorRef$1), appExports.optional(Rate)));
+const kAnonActorRefSlotId$1 = appExports.getSlotId(callDef$1, AnonActorRef$1);
+const kRateSlotId = appExports.getSlotId(callDef$1, Rate);
 function clampShootRate(rate) {
   return Math.max(MIN_SHOOT_RATE, Math.min(MAX_SHOOT_RATE, rate));
 }
@@ -30896,7 +31528,7 @@ function launchBlip(ctx, args) {
     const state = appExports.getCallSiteState(ctx);
     if (now < state.nextShootTime) return false;
     let cooldown = 1e3 / DEFAULT_SHOOT_RATE;
-    const rateValue = args.get(kRateSlotId);
+    const rateValue = args.at(kRateSlotId);
     if (rateValue && appExports.isNumberValue(rateValue)) {
       cooldown = 1e3 / clampShootRate(rateValue.v);
     }
@@ -30950,8 +31582,7 @@ const fnShoot = {
   outputs,
   metadata: {
     label: "shoot",
-    iconUrl: `${ICON_BASE}/shoot.svg`,
-    grammarNote: `rate clamps to ${MIN_SHOOT_RATE}..${MAX_SHOOT_RATE} shots per second`
+    iconUrl: `${ICON_BASE}/shoot.svg`
   }
 };
 const parameters$1 = [
@@ -30974,9 +31605,13 @@ const East = appExports.mod(TileIds.Modifier.DirectionEast);
 const West = appExports.mod(TileIds.Modifier.DirectionWest);
 const Quickly = appExports.mod(TileIds.Modifier.Quickly);
 const Slowly = appExports.mod(TileIds.Modifier.Slowly);
-const Priority = appExports.param(TileIds.Parameter.Priority);
+const Priority = appExports.param(TileIds.Parameter.Priority, {
+  default: appExports.mkNumberValue(DEFAULT_STEERING_PRIORITY)
+});
 const AnonActorRef = appExports.param(TileIds.Parameter.AnonymousActorRef, {
-  anonymous: true
+  anonymous: true,
+  name: "target",
+  derived: true
 });
 const TargetedModifier = {
   type: "choice",
@@ -31022,14 +31657,14 @@ const kAnonActorRefSlotId = appExports.getSlotId(callDef, AnonActorRef);
 const kQuicklyMultiplier = 0.5;
 const kSlowlyMultiplier = 1;
 function getSpeedMultiplier(args) {
-  const quicklyCount = appExports.extractNumberValue(args.get(kQuicklySlotId)) ?? 0;
-  const slowlyCount = appExports.extractNumberValue(args.get(kSlowlySlotId)) ?? 0;
+  const quicklyCount = appExports.extractNumberValue(args.at(kQuicklySlotId)) ?? 0;
+  const slowlyCount = appExports.extractNumberValue(args.at(kSlowlySlotId)) ?? 0;
   if (quicklyCount > 0) return 1 + quicklyCount * kQuicklyMultiplier;
   if (slowlyCount > 0) return 1 / (1 + slowlyCount * kSlowlyMultiplier);
   return 1;
 }
 function getWeight(args) {
-  return appExports.extractNumberValue(args.get(kPrioritySlotId)) ?? 0.5;
+  return appExports.extractNumberValue(args.at(kPrioritySlotId)) ?? DEFAULT_STEERING_PRIORITY;
 }
 const ANGLE_NORTH = -Math.PI / 2;
 const ANGLE_SOUTH = Math.PI / 2;
@@ -31188,7 +31823,7 @@ function registerEngineContext(api) {
       exec: (ctx, args) => {
         const self2 = getSelf(ctx);
         if (!self2) return appExports.mkListValue(actorRefListTypeId, appExports.List.empty());
-        const archetypeStr = appExports.extractStringValue(args.get(1));
+        const archetypeStr = appExports.extractStringValue(args.at(1));
         if (!archetypeStr || !VALID_ARCHETYPES.has(archetypeStr)) {
           return appExports.mkListValue(actorRefListTypeId, appExports.List.empty());
         }
@@ -31207,7 +31842,7 @@ function registerEngineContext(api) {
       exec: (ctx, args) => {
         const self2 = getSelf(ctx);
         if (!self2) return appExports.NIL_VALUE;
-        const id3 = appExports.extractNumberValue(args.get(1));
+        const id3 = appExports.extractNumberValue(args.at(1));
         if (id3 === void 0) return appExports.NIL_VALUE;
         const actor = self2.engine.getActorById(id3);
         if (!actor) return appExports.NIL_VALUE;
@@ -31352,7 +31987,7 @@ function registerTiles(api) {
 }
 function createEcosimModule() {
   return {
-    id: "mindcraft.ecosim",
+    id: "wendoo.ecosim",
     migrateBrainJson: migrateEcosimBrainJson,
     install(api) {
       registerTypes(api);
@@ -31550,7 +32185,7 @@ function injectedContent() {
       "this build defines none of TARGET_IDENTITY, TILE_DOC_CONTENT and SHIPPED_BRAIN_DEFS, so the rehearsal carries no content"
     );
   }
-  return { targetIdentity: "mindcraft-lang/trg-ecosim", tileDocs: define_TILE_DOC_CONTENT_default, shippedBrains: define_SHIPPED_BRAIN_DEFS_default };
+  return { targetIdentity: "wendoo-lang/trg-ecosim", tileDocs: define_TILE_DOC_CONTENT_default, shippedBrains: define_SHIPPED_BRAIN_DEFS_default };
 }
 function shippedBrainBytes(shipped, archetype) {
   const encoded = shipped[archetype];
@@ -36228,7 +36863,7 @@ class Actor {
     // Last computed movement intent for debug visualization
     __publicField(this, "debugTargetPositions", /* @__PURE__ */ new Map());
     __publicField(this, "pageActivated", ({ pageIndex }) => {
-      const page2 = this.brainDef.pages().get(pageIndex);
+      const page2 = this.brainDef.pages().at(pageIndex);
       this.hasVision = page2 !== void 0 && pageHasCapability(page2, TileCapabilityBits.Vision);
     });
     __publicField(this, "pageDeactivated", (_) => {
@@ -36375,11 +37010,11 @@ class Actor {
   }
   /**
    * Display a chat bubble with the given text above the actor.
-   * The bubble auto-dismisses after the given duration (default 5 seconds),
-   * or is replaced if displayString is called again before the timer expires.
+   * The bubble auto-dismisses after the given duration, or is replaced if
+   * displayString is called again before the timer expires.
    *
    * @param text - The text to display in the bubble.
-   * @param durationSecs - Duration in seconds before auto-dismiss. Defaults to 5.
+   * @param durationSecs - Seconds before auto-dismiss; {@link SAY_DEFAULT_DURATION_SECONDS} when absent.
    */
   displayString(text, durationSecs) {
     if (this.chatBubble && this.chatBubbleText === text) {
@@ -36424,7 +37059,7 @@ class Actor {
     container.setDepth(100);
     this.chatBubble = container;
     this.chatBubbleText = text;
-    const dismissMs = (durationSecs ?? 5) * 1e3;
+    const dismissMs = (durationSecs ?? SAY_DEFAULT_DURATION_SECONDS) * 1e3;
     this.chatBubbleTimer = scene.time.delayedCall(dismissMs, () => {
       this.clearDisplayString();
     });
@@ -37266,7 +37901,7 @@ function defaultDesiredCounts() {
 }
 function normalizeBrainDef(brainDef) {
   if (!(brainDef instanceof appExports.BrainDef)) {
-    throw new Error("Expected BrainDef from mindcraft environment");
+    throw new Error("Expected BrainDef from wendoo environment");
   }
   if (brainDef.pages().size() === 0) {
     brainDef.appendNewPage();
@@ -37708,6 +38343,8 @@ async function createRehearsalWorld(options) {
     shutdown: () => engine.shutdown()
   };
 }
+var define_BUILD_STAMP_default = { coreVersion: "0.2.19", coreDistHash: "8d1d50a245bfa0a176e5968e68c39c9b56c16852007a7a8368c74e9ded6f6b80", builtAt: "2026-09-07T17:59:48.208Z" };
+const buildStamp = typeof define_BUILD_STAMP_default === "object" ? define_BUILD_STAMP_default : void 0;
 const MANIFEST = {
   target: "ecosim, a top-down world of creatures",
   thing: "their creature",
@@ -37769,5 +38406,6 @@ function createTargetAdapter(content = injectedContent()) {
   });
 }
 export {
+  buildStamp,
   createTargetAdapter
 };

@@ -1,52 +1,62 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://sim.mindcraft-lang.org/</loc>
+    <loc>https://ecosim.playwendoo.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://sim.mindcraft-lang.org/docs</loc>
+    <loc>https://ecosim.playwendoo.com/docs</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://sim.mindcraft-lang.org/docs/patterns/flee-predator</loc>
+    <loc>https://ecosim.playwendoo.com/docs/patterns/flee-predator</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://sim.mindcraft-lang.org/docs/patterns/hunt-and-eat</loc>
+    <loc>https://ecosim.playwendoo.com/docs/patterns/hunt-and-eat</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://sim.mindcraft-lang.org/docs/patterns/wander-default</loc>
+    <loc>https://ecosim.playwendoo.com/docs/patterns/wander-default</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://sim.mindcraft-lang.org/docs/concepts/rule-evaluation</loc>
+    <loc>https://ecosim.playwendoo.com/docs/concepts/rule-evaluation</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://sim.mindcraft-lang.org/docs/concepts/pages</loc>
+    <loc>https://ecosim.playwendoo.com/docs/concepts/trigger-modes</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://sim.mindcraft-lang.org/docs/concepts/data-types</loc>
+    <loc>https://ecosim.playwendoo.com/docs/concepts/sequencing</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://sim.mindcraft-lang.org/docs/concepts/variables</loc>
+    <loc>https://ecosim.playwendoo.com/docs/concepts/pages</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://sim.mindcraft-lang.org/docs/concepts/literals</loc>
+    <loc>https://ecosim.playwendoo.com/docs/concepts/data-types</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ecosim.playwendoo.com/docs/concepts/variables</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://ecosim.playwendoo.com/docs/concepts/literals</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
