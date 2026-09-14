@@ -1,0 +1,38 @@
+{
+  "formatVersion": 1,
+  "targetIdentity": "wendoo-lang/trg-ecosim",
+  "buildStamp": {
+    "coreVersion": "0.2.20",
+    "coreDistHash": "3c7a82608561bf5ae5934efd08a855d7a56f2d84a75e5b79c1f04b76549e0def",
+    "builtAt": "2026-09-14T04:47:14.899Z"
+  },
+  "manifest": {
+    "target": "ecosim, a top-down world of creatures",
+    "thing": "their creature",
+    "provides": [
+      "A creature can see other creatures in front of it and can feel a bump when one touches it.",
+      "A creature can move, turn, eat, shoot, and say something out loud.",
+      "Creatures come in three kinds: carnivores, herbivores, and plants."
+    ]
+  },
+  "subjects": [
+    "carnivore",
+    "herbivore",
+    "plant"
+  ],
+  "inputKinds": [
+    {
+      "name": "carnivore-ahead",
+      "description": "Distance in world pixels at which one carnivore is held directly ahead of the creature under study; 0 takes it out of the world."
+    },
+    {
+      "name": "herbivore-ahead",
+      "description": "Distance in world pixels at which one herbivore is held directly ahead of the creature under study; 0 takes it out of the world."
+    },
+    {
+      "name": "plant-ahead",
+      "description": "Distance in world pixels at which one plant is held directly ahead of the creature under study; 0 takes it out of the world."
+    }
+  ],
+  "stateChannels": []
+}

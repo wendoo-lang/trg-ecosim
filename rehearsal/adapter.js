@@ -8148,11 +8148,11 @@ function requireBrainRuntime() {
     }
     /**
      * Request a page change by zero-based page index. If `pageIndex` equals the
-     * current page, triggers a restart instead.
+     * current page, triggers a restart instead. An index outside the brain's
+     * pages is a no-op: the current page stays active and no request is pending.
      */
     requestPageChange(pageIndex) {
       if (pageIndex < 0 || pageIndex >= this.pageMetadata.size()) {
-        this.desiredPageIndex = -1;
         return;
       }
       if (pageIndex === this.currentPageIndex) {
@@ -8162,7 +8162,10 @@ function requireBrainRuntime() {
       this.desiredPageIndex = pageIndex;
       this.cancelActiveFibers();
     }
-    /** Request a page change by stable page identifier (UUID). */
+    /**
+     * Request a page change by stable page identifier (UUID), falling back to a
+     * page-name lookup. A no-op when no page carries the identifier or the name.
+     */
     requestPageChangeByPageId(pageId) {
       const idx = this.pageIdToIndex.get(pageId);
       if (idx !== void 0) {
@@ -8171,14 +8174,12 @@ function requireBrainRuntime() {
       }
       this.requestPageChangeByName(pageId);
     }
-    /** Request a page change by page name. */
+    /** Request a page change by page name. A no-op when no page carries the name. */
     requestPageChangeByName(name) {
       const idx = this.pageNameToIndex.get(name);
       if (idx !== void 0) {
         this.requestPageChange(idx);
-        return;
       }
-      this.requestPageChange(-1);
     }
     /** Request that the current page restart at the next tick. */
     requestPageRestart() {
@@ -12957,6 +12958,7 @@ function requireTiles$1() {
     exports$1.fixedFormat = fixedFormat;
     exports$1.timeSecondsFormat = timeSecondsFormat;
     exports$1.timeMsFormat = timeMsFormat;
+    exports$1.isDisplayFormat = isDisplayFormat;
     exports$1.parseDisplayFormat = parseDisplayFormat;
     exports$1.isActionTileDef = isActionTileDef;
     exports$1.isInlineTileDef = isInlineTileDef;
@@ -13043,6 +13045,30 @@ function requireTiles$1() {
     }
     function timeMsFormat(decimals) {
       return `time_ms:${decimals}`;
+    }
+    const kBareDisplayFormats = ["default", "percent", "thousands", "time_seconds", "time_ms"];
+    const kCountedDisplayFormatPrefixes = ["percent:", "fixed:", "time_seconds:", "time_ms:"];
+    const ZERO_CHAR_CODE = 48;
+    const NINE_CHAR_CODE = 57;
+    function isDigitRun(text) {
+      const len = string_1.StringUtils.length(text);
+      if (len === 0)
+        return false;
+      for (let i = 0; i < len; i++) {
+        const code = string_1.StringUtils.charCodeAt(text, i);
+        if (code < ZERO_CHAR_CODE || code > NINE_CHAR_CODE)
+          return false;
+      }
+      return true;
+    }
+    function isDisplayFormat(fmt) {
+      if (kBareDisplayFormats.includes(fmt))
+        return true;
+      for (const prefix of kCountedDisplayFormatPrefixes) {
+        if (string_1.StringUtils.startsWith(fmt, prefix))
+          return isDigitRun(string_1.StringUtils.substring(fmt, string_1.StringUtils.length(prefix)));
+      }
+      return false;
     }
     function parseDisplayFormat(fmt) {
       if (string_1.StringUtils.startsWith(fmt, "percent:")) {
@@ -13156,7 +13182,6 @@ function requireTiles$1() {
     })(CoreVariableFactoryId || (exports$1.CoreVariableFactoryId = CoreVariableFactoryId = {}));
     var CoreLiteralFactoryId;
     (function(CoreLiteralFactoryId2) {
-      CoreLiteralFactoryId2["Boolean"] = "boolean";
       CoreLiteralFactoryId2["Number"] = "number";
       CoreLiteralFactoryId2["String"] = "string";
     })(CoreLiteralFactoryId || (exports$1.CoreLiteralFactoryId = CoreLiteralFactoryId = {}));
@@ -13172,7 +13197,6 @@ function requireTiles$1() {
       return string_1.StringUtils.startsWith(tileId, "tile.var.factory->");
     }
     exports$1.CoreLiteralFactoryTileIds = [
-      mkLiteralFactoryTileId(CoreLiteralFactoryId.Boolean),
       mkLiteralFactoryTileId(CoreLiteralFactoryId.Number),
       mkLiteralFactoryTileId(CoreLiteralFactoryId.String)
     ];
@@ -38343,7 +38367,7 @@ async function createRehearsalWorld(options) {
     shutdown: () => engine.shutdown()
   };
 }
-var define_BUILD_STAMP_default = { coreVersion: "0.2.19", coreDistHash: "8d1d50a245bfa0a176e5968e68c39c9b56c16852007a7a8368c74e9ded6f6b80", builtAt: "2026-09-07T17:59:48.208Z" };
+var define_BUILD_STAMP_default = { coreVersion: "0.2.20", coreDistHash: "3c7a82608561bf5ae5934efd08a855d7a56f2d84a75e5b79c1f04b76549e0def", builtAt: "2026-09-14T04:47:14.899Z" };
 const buildStamp = typeof define_BUILD_STAMP_default === "object" ? define_BUILD_STAMP_default : void 0;
 const MANIFEST = {
   target: "ecosim, a top-down world of creatures",
