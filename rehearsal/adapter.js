@@ -38367,7 +38367,7 @@ async function createRehearsalWorld(options) {
     shutdown: () => engine.shutdown()
   };
 }
-var define_BUILD_STAMP_default = { coreVersion: "0.2.20", coreDistHash: "3c7a82608561bf5ae5934efd08a855d7a56f2d84a75e5b79c1f04b76549e0def", builtAt: "2026-09-14T16:16:25.948Z" };
+var define_BUILD_STAMP_default = { coreVersion: "0.2.20", coreDistHash: "2b93683f61098642557178edd2dfcfe9855f66b4d0b398320eb4afcf657c3ec5" };
 const buildStamp = typeof define_BUILD_STAMP_default === "object" ? define_BUILD_STAMP_default : void 0;
 const MANIFEST = {
   target: "ecosim, a top-down world of creatures",
